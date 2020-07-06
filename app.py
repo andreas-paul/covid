@@ -121,6 +121,7 @@ coordinates = pd.DataFrame({'lat': [24], 'lon': [54]})
 
 # st.map(coordinates, zoom=4)
 
+@st.cache
 data = wrangleData(country=country, cases=cases, recoveries=recoveries, deaths=deaths)
 
 st.write("")
