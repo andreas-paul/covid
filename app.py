@@ -126,7 +126,7 @@ data = wrangleData(country=country, cases=cases, recoveries=recoveries, deaths=d
 st.write("")
 days = st.number_input("Enter number of days", min_value=1, max_value=31, value=7)
 st.write(f"Most recent data (last {days} days):")
-st.write(data.tail(days))
+st.write(data[['cases', 'deaths', 'recoveries', 'active']].tail(days))
 
 st.write("""
 ## Graph data by type
