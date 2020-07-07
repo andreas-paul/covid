@@ -17,12 +17,15 @@ def load_data():
 		deaths = pd.read_csv('corona-deaths.csv')
 		last = cases['Date'].iloc[-1]
 		last = datetime.datetime.strptime(last, '%Y-%m-%d')
-		status = f'Loaded data files from disk. Latest data from {last.strftime("%d %B %Y")}.'
+		status = f'Loaded data files. Latest data from {last.strftime("%d %B %Y")}.'
 		return cases, recoveries, deaths, status
 	else:
-		cases = pd.read_csv('http://www.dkriesel.com/_media/corona-cases.csv', sep='\t').to_csv('corona-cases.csv', index=False)
-		recoveries = pd.read_csv('http://www.dkriesel.com/_media/corona-recoveries.csv',sep='\t').to_csv('corona-recoveries.csv', index=False)
-		deaths = pd.read_csv('http://www.dkriesel.com/_media/corona-deaths.csv', sep='\t').to_csv('corona-deaths.csv', index=False)
+		pd.read_csv('http://www.dkriesel.com/_media/corona-cases.csv', sep='\t').to_csv('corona-cases.csv', index=False)
+		pd.read_csv('http://www.dkriesel.com/_media/corona-recoveries.csv',sep='\t').to_csv('corona-recoveries.csv', index=False)
+		pd.read_csv('http://www.dkriesel.com/_media/corona-deaths.csv', sep='\t').to_csv('corona-deaths.csv', index=False)
+		cases = pd.read_csv('corona-cases.csv')
+		recoveries = pd.read_csv('corona-recoveries.csv')
+		deaths = pd.read_csv('corona-deaths.csv')
 		last = cases['Date'].iloc[-1]
 		last = datetime.datetime.strptime(last, '%Y-%m-%d')
 		status = f'Downloaded files and saved to disk. Latest data from {last.strftime("%d %B %Y")}.'
@@ -33,14 +36,8 @@ def update_data():
 	pd.read_csv('http://www.dkriesel.com/_media/corona-cases.csv', sep='\t').to_csv('corona-cases.csv', index=False)
 	pd.read_csv('http://www.dkriesel.com/_media/corona-recoveries.csv',sep='\t').to_csv('corona-recoveries.csv', index=False)
 	pd.read_csv('http://www.dkriesel.com/_media/corona-deaths.csv', sep='\t').to_csv('corona-deaths.csv', index=False)
-	cases = pd.read_csv('corona-cases.csv')
-	recoveries = pd.read_csv('corona-recoveries.csv')
-	deaths = pd.read_csv('corona-deaths.csv')
-	last = cases['Date'].iloc[-1]
-	last = datetime.datetime.strptime(last, '%Y-%m-%d')
-	status = f'Updated files and saved to disk. Latest data from {last.strftime("%d %B %Y")}.'
-	st.balloons()
-	return cases, recoveries, deaths, status
+	cases, recoveries, deaths, status = load_data()
+	return cases, recoveries, deaths, status 
 
 
 def wrangleData(country, cases, recoveries, deaths):
@@ -115,7 +112,7 @@ In this section, the data of individual countries can be explored.
 """)
 
 countries = tuple(cases.columns[1:])
-country = st.selectbox('Select country:', countries, 177)
+country = st.selectbox('Select country:', countries, 66)
 
 coordinates = pd.DataFrame({'lat': [24], 'lon': [54]})
 
