@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 # with open("style.css") as f:
 	# st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
 
-
 def load_data():
 	if os.path.exists('corona-cases.csv'):
 		cases = pd.read_csv('corona-cases.csv')
@@ -43,6 +42,38 @@ def update_data():
 	last = datetime.datetime.strptime(last, '%Y-%m-%d')
 	status = f'Downloaded files and saved to disk. Latest data from {last.strftime("%d %B %Y")}.'
 	return cases, recoveries, deaths, status
+
+
+
+def processing(countries, cases, deaths, recoveries):
+	"""
+	Function to combine data files and calculate active cases
+
+	"""
+	datalist = []
+	for country in countries:
+		d = deaths[['Date', country]]
+		c = cases[['Date', country]]
+		r = recoveries[['Date', country]]
+		df = c.merge(left_on='Date', right_on='Date', right=r)
+		df = df.merge(left_on='Date', right_on='Date', right=d)
+		df['Date'] = pd.to_datetime(df['Date'], format='%Y-%m-%d %H:%M:%S.%f')
+		df.set_index('Date', inplace=True)
+		df.columns = ['cases', 'recoveries', 'deaths']
+		df['active'] = df['cases'] - (df['deaths'] + df['recoveries'])
+		df = df[['active']]
+		df.columns = [f'{country}']
+		datalist.append(df)	
+	if len(datalist) > 1:
+		merged = pd.concat(datalist, axis=1)
+		return merged
+	elif len(datalist) == 1:
+		return df
+	else:
+		df = []
+		return df
+	
+
 
 
 def wrangleData(country, cases, recoveries, deaths):
@@ -112,6 +143,30 @@ if update:
 	# st.write(status)
 	status_text.text(f'{status}')
 
+
+st.write("""
+## Active cases
+
+Some countries do not report recovered patients. This results in the number of active
+cases being equal or similar to _cases_ - _deaths_ (e.g. Netherlands).
+""")
+
+countries = tuple(cases.columns[1:])
+countries = st.multiselect('Choose countries', countries, ['Germany', 'Netherlands'])
+
+if not countries:
+    st.warning("Please select at least one country.")
+
+merged = processing(countries, cases, deaths, recoveries)
+if len(merged) >= 1:
+	st.line_chart(merged)
+else:
+	pass
+
+
+
+
+
 st.write("""
 ## Stats by country
 
@@ -122,49 +177,15 @@ In this section, the data of individual countries can be explored.
 countries = tuple(cases.columns[1:])
 country = st.selectbox('Select country:', countries, 66)
 
-coordinates = pd.DataFrame({'lat': [24], 'lon': [54]})
-
+# coordinates = pd.DataFrame({'lat': [24], 'lon': [54]})
 # st.map(coordinates, zoom=4)
 
 data = wrangleData(country=country, cases=cases, recoveries=recoveries, deaths=deaths)
 
 st.write("")
-days = st.number_input("Enter number of days", min_value=1, max_value=31, value=7)
-st.write(f"Most recent data (last {days} days):")
-st.write(data[['cases', 'deaths', 'recoveries', 'active']].tail(days))
+# days = st.number_input("Enter number of days", min_value=1, max_value=31, value=5)
+st.write(f"Most recent data (last {5} days):")
+st.write(data[['cases', 'deaths', 'recoveries', 'active']].tail(5))
 
-st.write("""
-## Graph data by type
 
-""")
-datatype = ('cases', 'active', 'recoveries', 'deaths', 'change_active')
-datatype = st.selectbox("Select data type:", datatype, 1)
 
-txt = str(datatype).title()
-st.write(f'Covid-19 cases in {country}: {txt}')
-
-st.line_chart(data[f'{datatype}'])
-st.text("(This is an interactive chart. Zoom with your mousewheel, double-click to reset!)")
-
-# progress_bar = st.progress(0)
-# status_text = st.empty()
-# chart = st.line_chart(np.random.randn(10, 2))
-
-# for i in range(100):
-#     # Update progress bar.
-#     progress_bar.progress(i + 1)
-
-#     new_rows = np.random.randn(10, 2)
-
-#     # Update status text.
-#     status_text.text(
-#         'The latest random number is: %s' % new_rows[-1, 1])
-
-#     # Append data to the chart.
-#     chart.add_rows(new_rows)
-
-#     # Pretend we're doing some computation that takes time.
-#     time.sleep(0.1)
-
-# status_text.text('Done!')
-# st.balloons()
