@@ -6,43 +6,28 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 
-# with open("style.css") as f:
-	# st.markdown('<style>{}</style>'.format(f.read()), unsafe_allow_html=True)
 
-def load_data():
-	if os.path.exists('corona-cases.csv'):
-		cases = pd.read_csv('corona-cases.csv')
-		recoveries = pd.read_csv('corona-recoveries.csv')
-		deaths = pd.read_csv('corona-deaths.csv')
-		last = cases['Date'].iloc[-1]
-		last = datetime.datetime.strptime(last, '%Y-%m-%d')
-		status = f'Loaded data files. Latest data from {last.strftime("%d %B %Y")}.'
-		return cases, recoveries, deaths, status
-	else:
-		pd.read_csv('http://www.dkriesel.com/_media/corona-cases.csv', sep='\t').to_csv('corona-cases.csv', index=False)
-		pd.read_csv('http://www.dkriesel.com/_media/corona-recoveries.csv',sep='\t').to_csv('corona-recoveries.csv', index=False)
-		pd.read_csv('http://www.dkriesel.com/_media/corona-deaths.csv', sep='\t').to_csv('corona-deaths.csv', index=False)
-		cases = pd.read_csv('corona-cases.csv')
-		recoveries = pd.read_csv('corona-recoveries.csv')
-		deaths = pd.read_csv('corona-deaths.csv')
-		last = cases['Date'].iloc[-1]
-		last = datetime.datetime.strptime(last, '%Y-%m-%d')
-		status = f'Downloaded files and saved to disk. Latest data from {last.strftime("%d %B %Y")}.'
-		return cases, recoveries, deaths, status
+st.markdown(
+        f"""
+<style>
+    .reportview-container .main .block-container{{
+        max-width: 900px;        
+    }}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
 
 
-def update_data():
-	pd.read_csv('http://www.dkriesel.com/_media/corona-cases.csv', sep='\t').to_csv('corona-cases.csv', index=False)
-	pd.read_csv('http://www.dkriesel.com/_media/corona-recoveries.csv',sep='\t').to_csv('corona-recoveries.csv', index=False)
-	pd.read_csv('http://www.dkriesel.com/_media/corona-deaths.csv', sep='\t').to_csv('corona-deaths.csv', index=False)
-	cases = pd.read_csv('corona-cases.csv')
-	recoveries = pd.read_csv('corona-recoveries.csv')
-	deaths = pd.read_csv('corona-deaths.csv')
-	last = cases['Date'].iloc[-1]
-	last = datetime.datetime.strptime(last, '%Y-%m-%d')
-	status = f'Downloaded files and saved to disk. Latest data from {last.strftime("%d %B %Y")}.'
-	return cases, recoveries, deaths, status
-
+@st.cache
+def load_data():	
+	url_cases = "http://www.dkriesel.com/_media/corona-cases.csv"
+	url_deaths = "http://www.dkriesel.com/_media/corona-deaths.csv"
+	url_recoveries = "http://www.dkriesel.com/_media/corona-recoveries.csv"
+	cases = pd.read_csv(url_cases, sep='\t')
+	deaths = pd.read_csv(url_deaths, sep='\t')
+	recoveries = pd.read_csv(url_recoveries, sep='\t')
+	return cases, deaths, recoveries
 
 
 def processing(countries, cases, deaths, recoveries):
@@ -73,8 +58,6 @@ def processing(countries, cases, deaths, recoveries):
 		df = []
 		return df
 	
-
-
 
 def wrangleData(country, cases, recoveries, deaths):
 	uae_d = deaths[['Date', country]]
@@ -118,74 +101,48 @@ def plotData(data):
 	plt.show()
 
 
+
+def main():
+	
+	st.write("""	
+	# Data exploration
+
+	An experimental app to explore data related to Covid-19. 
+	""")
+
+	cases, deaths, recoveries = load_data()
+
+	st.write("""
+	## Active cases
+
+	Active cases are calculated by adding _deaths_ and _recoveries_ and substracting 
+	this number from the number of total _cases_. 
+	
+	Some countries do not report recovered patients, but most report deaths. This results in the number of active
+	cases being equal or similar to _cases_ - _deaths_ (e.g., in The Netherlands).
+	""")
+
+	countries = tuple(cases.columns[1:])
+	countries = st.multiselect('Choose countries', countries, ['Germany', 'Japan'])
+
+	if not countries:
+		st.warning("Please select at least one country.")
+
+
+	merged = processing(countries, cases, deaths, recoveries)
+	if len(merged) >= 1:
+		st.line_chart(merged)
+	else:
+		pass
+
+	last = cases['Date'].iloc[-1]
+	last = datetime.datetime.strptime(last, '%Y-%m-%d')
+	status = f'Latest data from {last.strftime("%d %B %Y")}.'
+	st.text(f"{status} Data source: http://www.dkriesel.com/corona")
+
+
+if __name__ == "__main__":
+    main()
+
+
 # st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
-
-
-st.write("""	
-# Data exploration
-
-A simple app to explore data related to Covid-19. Data source: [dkriesel.com](http://www.dkriesel.com/corona)
-""")
-
-st.write("""
-## Data Loading
-
-""")
-
-cases, recoveries, deaths, status = load_data()
-
-status_text = st.empty()
-status_text.text(f'{status}')
-
-update = st.button("Update data")
-if update:
-	cases, recoveries, deaths, status = update_data()
-	# st.write(status)
-	status_text.text(f'{status}')
-
-
-st.write("""
-## Active cases
-
-Some countries do not report recovered patients. This results in the number of active
-cases being equal or similar to _cases_ - _deaths_ (e.g. Netherlands).
-""")
-
-countries = tuple(cases.columns[1:])
-countries = st.multiselect('Choose countries', countries, ['Germany', 'Netherlands'])
-
-if not countries:
-    st.warning("Please select at least one country.")
-
-merged = processing(countries, cases, deaths, recoveries)
-if len(merged) >= 1:
-	st.line_chart(merged)
-else:
-	pass
-
-
-
-
-
-st.write("""
-## Stats by country
-
-In this section, the data of individual countries can be explored. 
-
-""")
-
-countries = tuple(cases.columns[1:])
-country = st.selectbox('Select country:', countries, 66)
-
-# coordinates = pd.DataFrame({'lat': [24], 'lon': [54]})
-# st.map(coordinates, zoom=4)
-
-data = wrangleData(country=country, cases=cases, recoveries=recoveries, deaths=deaths)
-
-st.write("")
-# days = st.number_input("Enter number of days", min_value=1, max_value=31, value=5)
-st.write(f"Most recent data (last {5} days):")
-st.write(data[['cases', 'deaths', 'recoveries', 'active']].tail(5))
-
-
-
