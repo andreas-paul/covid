@@ -30,6 +30,12 @@ def load_data():
 	return cases, deaths, recoveries
 
 
+@st.cache
+def load_pop_data():
+	pop_data = pd.read_csv('countries.csv', index_col='country')
+	return pop_data
+
+
 def processing(countries, cases, deaths, recoveries):
 	"""
 	Function to combine data files and calculate active cases
@@ -101,48 +107,91 @@ def plotData(data):
 	plt.show()
 
 
+def per_capita(x):
+	return x + 100
+
 
 def main():
 	
 	st.write("""	
-	# Data exploration
+	# 🦠 Covid-19 data exploration
 
-	An experimental app to explore data related to Covid-19. 
+	This is an experimental app to explore data related to Covid-19. I'm in no way an expert 
+	in epidemiology so please take the few attempts at interpreting the data with a grain of salt. 
+	Fortunately (or unfortunately 😷), the data speaks for itself.
 	""")
 
 	cases, deaths, recoveries = load_data()
+	pop_data = load_pop_data()
 
-	st.write("""
+	st.write("""\
 	## Active cases
 
-	Active cases are calculated by adding _deaths_ and _recoveries_ and substracting 
-	this number from the number of total _cases_. 
+	The first chart shows active cases of Covid-19 as reported by individual countries. Active cases are calculated in the following way:
+
+	$$ 
+	active = cases - (deaths + recoveries) 
+	$$
 	
-	Some countries do not report recovered patients, but most report deaths. This results in the number of active
-	cases being equal or similar to _cases_ - _deaths_ (e.g., in The Netherlands).
+	Some countries do not report recoveries (e.g., in The Netherlands), but most report deaths. This results 
+	in the number of active	cases sometimes being equal or similar to _cases_ - _deaths_ only, 
+	while at the same time also showing a steady increase in the total case count.
 	""")
 
-	countries = tuple(cases.columns[1:])
-	countries = st.multiselect('Choose countries', countries, ['Germany', 'Japan'])
 
+	countries = tuple(cases.columns[1:])
+	
+	countries = st.multiselect('Choose countries', countries, ['US', 'Germany'])
 	if not countries:
 		st.warning("Please select at least one country.")
 
-
 	merged = processing(countries, cases, deaths, recoveries)
+
+	enrich = st.radio("Select enrichment", ('none', 'per capita', 'density', 
+						'median age', 'urban population'))
+	
+	if enrich == 'none':
+		pass
+	elif enrich == 'per capita':
+		for item in countries:
+			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"population"] * 100000
+	elif enrich == 'density':
+		for item in countries:
+			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"density"]
+	elif enrich == 'median age':
+		for item in countries:
+			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"median_age"]	
+	elif enrich == 'urban population':
+		for item in countries:
+			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"urban_pop"]			
+	
+
 	if len(merged) >= 1:
 		st.line_chart(merged)
 	else:
 		pass
+	
+	if len(countries) > 0:
+		df_list = []
+		for item in countries:
+			x = pop_data.loc[[f'{item}']]
+			df_list.append(x)		
+		pop_data_sel = pd.concat(df_list).sort_values(by='country')
+		st.write("Relevant population data:")
+		st.write(pop_data_sel)
+	else:
+		st.warning("No country selected above, so there's no data to show here.")
+		return
 
 	last = cases['Date'].iloc[-1]
 	last = datetime.datetime.strptime(last, '%Y-%m-%d')
 	status = f'Latest data from {last.strftime("%d %B %Y")}.'
-	st.text(f"{status} Data source: http://www.dkriesel.com/corona")
+	st.info(f"{status} Data sources: [dkriesel](www.dkriesel.com/corona/) | [worldometer](worldometers.info)  ")
 
 
 if __name__ == "__main__":
     main()
 
 
-# st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+## Set radio widget to horizontal
+st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
