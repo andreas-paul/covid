@@ -27,6 +27,9 @@ def load_data():
 	cases = pd.read_csv(url_cases, sep='\t')
 	deaths = pd.read_csv(url_deaths, sep='\t')
 	recoveries = pd.read_csv(url_recoveries, sep='\t')
+	cases.rename(columns={'Korea, South': 'South Korea'}, inplace=True)
+	recoveries.rename(columns={'Korea, South': 'South Korea'}, inplace=True)
+	deaths.rename(columns={'Korea, South': 'South Korea'}, inplace=True)
 	return cases, deaths, recoveries
 
 
@@ -65,60 +68,34 @@ def processing(countries, cases, deaths, recoveries):
 		return df
 	
 
-def wrangleData(country, cases, recoveries, deaths):
-	uae_d = deaths[['Date', country]]
-	uae_c = cases[['Date', country]]
-	uae_r = recoveries[['Date', country]]
-	uae_d.columns = ['Date_d', 'deaths']
-	uae_c.columns = ['Date_c', 'cases']
-	uae_r.columns = ['Date_r', 'recoveries']
-	data = [uae_c, uae_d, uae_r]
-	df = pd.concat(data, axis=1)
-	df.drop(['Date_d', 'Date_r'], axis=1, inplace=True)   
-	df.rename(columns={'Date_c': 'date'})          
-	df['Date_c'] = pd.to_datetime(df['Date_c'], format='%Y-%m-%d %H:%M:%S.%f')
-	df.set_index('Date_c', inplace=True)    
-	# df = df.loc[datetime.date(year=2020,month=month,day=1):]
-	df['active'] = df['cases'] - (df['deaths'] + df['recoveries'])
-	df['change_active'] = df['active'].pct_change()
-	df['change_active'] = df['change_active'] * 100
-	df['change_active'] = df['change_active'].round(2)
-	df['change_cases'] = df['cases'].pct_change()
-	df['change_cases'] = df['change_cases'] * 100  
-	df['change_cases'] = df['change_cases'].round(2)
-	df[df['change_cases'] == np.inf] = np.nan
-
-	return df
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
 
-def plotData(data):
-	fig, ax = plt.subplots(figsize=(13,8))
-	plt.xticks(rotation=70)
-	ax.plot(df['change_active'], label='Change active cases', color='darkblue', linewidth=1)
-	ax.plot(df['change_cases'], label='Change total cases', color='orange', linewidth=0.5)
-	#     ax.set_xlim([datetime.date(2020, 4, 1), datetime.date(2020, 4, 28)])
-	bottom = np.nanmin(df['change_active']) - 5
-	top = np.nanmax(df['change_active']) + 5
-	ax.set_ylim(bottom=bottom,top=top)
-	ax.set_title(f'Daily change in active cases of COVID-19 ({country})', fontsize=14)
-	ax.legend()
-	ax.grid(color='grey', linestyle='--', linewidth=0.5)
-	ax.axhline(0, color='black', lw=1)
-	plt.show()
+def remote_css(url):
+    st.markdown(f'<link href="{url}" rel="stylesheet">', unsafe_allow_html=True)    
 
 
-def per_capita(x):
-	return x + 100
+def icon(icon_name):
+    st.markdown(f'<i class="material-icons">{icon_name}</i>', unsafe_allow_html=True)
 
 
 def main():
+
+	# Load some potential styling options
+	local_css("style.css")
+	remote_css('https://fonts.googleapis.com/icon?family=Material+Icons')	
+	## Set radio widget to horizontal:
+	st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
+	# icon("alarm")
 	
 	st.write("""	
 	# 🦠 Covid-19 data exploration
 
 	This is an experimental app to explore data related to Covid-19. I'm in no way an expert 
-	in epidemiology so please take the few attempts at interpreting the data with a grain of salt. 
-	Fortunately (or unfortunately 😷), the data speaks for itself.
+	in epidemiology so please take the few attempts at interpreting the data here with a grain of salt. 
+	Fortunately (or unfortunately 😷), it speaks for itself.
 	""")
 
 	cases, deaths, recoveries = load_data()
@@ -128,7 +105,7 @@ def main():
 	## Active cases
 
 	The first chart shows active cases of Covid-19 as reported by individual countries. Active cases are calculated in the following way:
-
+	
 	$$ 
 	active = cases - (deaths + recoveries) 
 	$$
@@ -141,30 +118,19 @@ def main():
 
 	countries = tuple(cases.columns[1:])
 	
-	countries = st.multiselect('Choose countries', countries, ['US', 'Germany'])
+	countries = st.multiselect('Choose one or multiple countries', countries, ['Germany', 'US'])
 	if not countries:
 		st.warning("Please select at least one country.")
 
 	merged = processing(countries, cases, deaths, recoveries)
 
-	enrich = st.radio("Select enrichment", ('none', 'per capita', 'density', 
-						'median age', 'urban population'))
+	enrich = st.radio("Select enrichment", ('none', 'per capita (100k)'), 1)
 	
 	if enrich == 'none':
 		pass
-	elif enrich == 'per capita':
+	elif enrich == 'per capita (100k)':
 		for item in countries:
-			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"population"] * 100000
-	elif enrich == 'density':
-		for item in countries:
-			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"density"]
-	elif enrich == 'median age':
-		for item in countries:
-			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"median_age"]	
-	elif enrich == 'urban population':
-		for item in countries:
-			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"urban_pop"]			
-	
+			merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"population"] * 100000		
 
 	if len(merged) >= 1:
 		st.line_chart(merged)
@@ -177,21 +143,16 @@ def main():
 			x = pop_data.loc[[f'{item}']]
 			df_list.append(x)		
 		pop_data_sel = pd.concat(df_list).sort_values(by='country')
-		st.write("Relevant population data:")
-		st.write(pop_data_sel)
 	else:
 		st.warning("No country selected above, so there's no data to show here.")
 		return
 
+
 	last = cases['Date'].iloc[-1]
 	last = datetime.datetime.strptime(last, '%Y-%m-%d')
 	status = f'Latest data from {last.strftime("%d %B %Y")}.'
-	st.info(f"{status} Data sources: [dkriesel](www.dkriesel.com/corona/) | [worldometer](worldometers.info)  ")
+	st.info(f"{status} Data sources: [dkriesel](https://www.dkriesel.com/corona/) | [worldometer](https://worldometers.info)  ")
 
 
 if __name__ == "__main__":
     main()
-
-
-## Set radio widget to horizontal
-st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)

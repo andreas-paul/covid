@@ -1,8 +1,16 @@
-body {
-    background-color: #eee;
+/*body {
+    color: #000;
+    background-color: #F5F5F5;
+}*/
+
+/*.stButton>button {
+    color: #4F8BF9;
+    border-radius: 50%;
+    height: 3em;
+    width: 3em;
 }
 
-.fullScreenFrame > div {
-    display: flex;
-    justify-content: center;
-}
+.stTextInput>div>div>input {
+    color: #4F8BF9;
+}*/
+
