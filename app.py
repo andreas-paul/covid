@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import datetime
 import numpy as np
@@ -28,13 +29,16 @@ def load_data():
 	cases = pd.read_csv(url_cases, sep='\t')
 	deaths = pd.read_csv(url_deaths, sep='\t')
 	recoveries = pd.read_csv(url_recoveries, sep='\t')
-	cases.rename(columns={'Korea, South': 'South Korea'}, inplace=True)
-	recoveries.rename(columns={'Korea, South': 'South Korea'}, inplace=True)
-	deaths.rename(columns={'Korea, South': 'South Korea'}, inplace=True)
+	cases.rename(columns={'Korea, South': 'South Korea', 'US': 'United States'}, inplace=True)
+	recoveries.rename(columns={'Korea, South': 'South Korea','US': 'United States'}, inplace=True)
+	deaths.rename(columns={'Korea, South': 'South Korea','US': 'United States'}, inplace=True)
+	cases.drop(['Diamond Princess', 'MS Zaandam'], inplace=True, axis=1)
+	recoveries.drop(['Diamond Princess', 'MS Zaandam'], inplace=True, axis=1)
+	deaths.drop(['Diamond Princess', 'MS Zaandam'], inplace=True, axis=1)
 	return cases, deaths, recoveries
 
 
-@st.cache
+# @st.cache
 def load_pop_data():
 	pop_data = pd.read_csv('countries.csv', index_col='country')
 	return pop_data
@@ -69,7 +73,7 @@ def processing(countries, cases, deaths, recoveries):
 		return df
 
 
-@st.cache
+@st.cache(allow_output_mutation=True)
 def wrangle_data(countries, cases, deaths, recoveries):
 	datetime = cases['Date']
 	data = pd.DataFrame(index=datetime)	
@@ -96,32 +100,69 @@ def wrangle_data(countries, cases, deaths, recoveries):
 	return data
 
 
-def map(map_data):
-	fig = px.choropleth(map_data, locationmode='country names',
-						locations='country',
-		                color='active', 
-						animation_frame='date',
-						title = "Active cases",							                
-		                color_continuous_scale=px.colors.sequential.PuRd)
-	fig.update_layout(margin={"r":0,"t":0,"l":50,"b":0})
-	fig.update_layout(coloraxis=dict(colorbar_x=1, 
-                                 colorbar_y=0.5, 
-                                 colorbar_len=0.80, 
-								 colorbar_title='',
-                                 colorbar_thickness=20,
-								 colorbar_tickfont=dict(size=11, color='grey')))
-	# fig.update_layout(coloraxis_showscale=False)
-
-	fig["layout"].pop("updatemenus")
-	return fig
+def map(map_data, per_capita):
+	if not per_capita:
+		fig = px.choropleth(map_data, locationmode='country names',
+									locations='country',
+									color='active', 
+									animation_frame='date',
+									title = "Active cases",							                
+									color_continuous_scale=px.colors.sequential.Viridis,
+									# range_color=(0,2000000)
+									)
+		fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, autosize=True, hovermode='closest')
+		fig.update_layout(coloraxis=dict(colorbar_x=0.06, 
+									colorbar_y=0.45, 
+									colorbar_len=0.60, 
+									colorbar_title='',
+									colorbar_thicknessmode='pixels',
+									colorbar_thickness=15,
+									colorbar_bgcolor='rgba(255,255,255,1)',
+									colorbar_tickfont=dict(size=11, color='grey')))
+		
+		return fig
+	else:
+		fig = px.choropleth(map_data, locationmode='country names',
+									locations='country',
+									color='active_capita', 
+									animation_frame='date',
+									title = "Active cases",							                
+									color_continuous_scale=px.colors.sequential.Viridis,
+									# range_color=(0,2000000)
+									)
+		fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, autosize=True, hovermode='closest')
+		fig.update_layout(coloraxis=dict(colorbar_x=0.06, 
+									colorbar_y=0.45, 
+									colorbar_len=0.60, 
+									colorbar_title='',
+									colorbar_thicknessmode='pixels',
+									colorbar_thickness=15,
+									colorbar_bgcolor='rgba(255,255,255,1)',
+									colorbar_tickfont=dict(size=11, color='grey')))
+		
+		return fig
 
 
 def main():
 
-	## Set radio widget to horizontal:
+	# Load and wrangle data
+	cases, deaths, recoveries = load_data()
+	pop_data = load_pop_data()
+	countries_pop_data = pop_data.index.to_list()
+	country_list = tuple(cases.columns[1:])	
+	map_data = wrangle_data(country_list, cases, deaths, recoveries)
+	map_data = map_data[map_data['country'].isin(countries_pop_data)]
+	map_data['active_capita'] = map_data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
+	with pd.option_context('mode.use_inf_as_na', True):
+		map_data = map_data.dropna(subset=['active', 'active_capita'], how='all')
+	exclude = map_data.sort_values(by=['date','active']).tail(5)
+	exclude = exclude['country'].to_list()
+	exclude_from_map = map_data[~map_data['country'].isin(exclude)]
+	
+
+	# Set radio widget to horizontal:
 	st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
 
-	
 	st.write("""	
 	# 🦠 Covid-19 data exploration
 
@@ -129,11 +170,6 @@ def main():
 	in epidemiology so please take the few attempts at interpreting the data here with a grain of salt. 
 	Fortunately (or unfortunately 😷), it speaks for itself.
 	""")
-
-	cases, deaths, recoveries = load_data()
-	pop_data = load_pop_data()
-	countries = tuple(cases.columns[1:])
-	map_data = wrangle_data(countries, cases, deaths, recoveries)
 	
 	feature = st.sidebar.selectbox("Choose feature", ['Active cases', 'Per-capita map'])
 
@@ -142,7 +178,8 @@ def main():
 		st.write("""\
 		## Active cases
 
-		This first chart shows active cases of Covid-19 as reported by individual countries. Active cases are calculated in the following way:
+		This first chart shows active cases of Covid-19 as reported by individual countries. Active cases 
+		are calculated in the following way:
 		
 		$$ 
 		active = cases - (deaths + recoveries) 
@@ -152,11 +189,8 @@ def main():
 		in the number of active	cases sometimes being equal or similar to _cases_ - _deaths_ only, 
 		while at the same time also showing a steady increase in the total case count.
 		""")
-
-
-		countries = tuple(cases.columns[1:])
 		
-		countries = st.multiselect('Choose one or multiple countries', countries, ['Germany', 'US'])
+		countries = st.multiselect('Choose one or multiple countries', country_list, ['Germany', 'United States'])
 		if not countries:
 			st.warning("Please select at least one country.")
 
@@ -168,7 +202,7 @@ def main():
 			pass
 		elif enrich == 'per capita (100k)':
 			for item in countries:
-				merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}",f"population"] * 100000		
+				merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}","population"] * 100000		
 
 		if len(merged) >= 1:
 			st.line_chart(merged)
@@ -185,24 +219,39 @@ def main():
 			st.warning("No country selected above, so there's no data to show here.")
 			return
 
+
 	elif feature == 'Per-capita map':
 
 		st.write("""\
-		## Active cases per capita
+		## Active cases 
 
-		This map shows the number of active cases through time and space. 
+		This map shows the number of active cases through space and time.
 		
 		""")
 
-		fig = map(map_data)
+		# Exclude countries with relatively high active case numbers	
+		checkbox = st.empty()
+		value = checkbox.checkbox(f"Exclude countries with high case counts ({exclude[4]}, {exclude[3]}, "
+								f"{exclude[2]}, {exclude[1]} and {exclude[0]})", '', )
+		if value:	
+			map_data = exclude_from_map
+			
+		per_capita = st.checkbox('per capita (100k)')
+			
+		# Exlude countries that do not report recoveries properly (manual list)
+		bad_rep = []
+
+		fig = map(map_data, per_capita)
 		st.write(fig)
 
+	# -----------------------------------------------------------------------------------------------------------
 
-
+	# Bottom line (credits)
 	last = cases['Date'].iloc[-1]
 	last = datetime.datetime.strptime(last, '%Y-%m-%d')
 	status = f'Latest data from {last.strftime("%d %B %Y")}.'
-	st.info(f"{status} Data sources: [dkriesel](https://www.dkriesel.com/corona/) | [worldometer](https://worldometers.info)  ")
+	st.info(f"{status} Data sources: [dkriesel](https://www.dkriesel.com/corona/)"
+			f" | [worldometer](https://worldometers.info)")
 
 
 if __name__ == "__main__":
@@ -210,4 +259,3 @@ if __name__ == "__main__":
 
 
 # TODO Implement download from S3 
-# TODO Implement per capita calc for map
