@@ -74,7 +74,7 @@ def processing(countries, cases, deaths, recoveries):
 
 
 @st.cache(allow_output_mutation=True)
-def wrangle_data(countries, cases, deaths, recoveries):
+def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recoveries):
 	datetime = cases['Date']
 	data = pd.DataFrame(index=datetime)	
 	for country in countries:
@@ -92,6 +92,10 @@ def wrangle_data(countries, cases, deaths, recoveries):
 	data = data.transpose().reset_index()
 	data = pd.melt(data, id_vars='index')
 	data.rename(columns={'index': 'country', 'Date': 'date', 'value': 'active'}, inplace=True)
+	data = data[data['country'].isin(countries_pop_data)]
+	data['active_capita'] = data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
+	with pd.option_context('mode.use_inf_as_na', True):
+		data = data.dropna(subset=['active', 'active_capita'], how='all')
 
 	# # per week
 	# df['new_date'] = pd.to_datetime(df['date'])
@@ -162,8 +166,10 @@ def main():
 	pop_data = load_pop_data()
 	countries_pop_data = pop_data.index.to_list()
 	country_list = tuple(cases.columns[1:])	
-
-
+	map_data = wrangle_data(country_list, pop_data, countries_pop_data, cases, deaths, recoveries) 	
+	exclude = map_data.sort_values(by=['date','active']).tail(5)
+	exclude = exclude['country'].to_list()
+	exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 	
 	feature = st.radio("Choose feature to display", ['Active cases', 'Per-capita map'])
 
@@ -225,14 +231,14 @@ def main():
 		
 		""")
 
-		map_data = wrangle_data(country_list, cases, deaths, recoveries)
-		map_data = map_data[map_data['country'].isin(countries_pop_data)]
-		map_data['active_capita'] = map_data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
-		with pd.option_context('mode.use_inf_as_na', True):
-			map_data = map_data.dropna(subset=['active', 'active_capita'], how='all')
-		exclude = map_data.sort_values(by=['date','active']).tail(5)
-		exclude = exclude['country'].to_list()
-		exclude_from_map = map_data[~map_data['country'].isin(exclude)]
+		# map_data = wrangle_data(country_list, cases, deaths, recoveries)
+		# map_data = map_data[map_data['country'].isin(countries_pop_data)]
+		# map_data['active_capita'] = map_data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
+		# with pd.option_context('mode.use_inf_as_na', True):
+		# 	map_data = map_data.dropna(subset=['active', 'active_capita'], how='all')
+		# exclude = map_data.sort_values(by=['date','active']).tail(5)
+		# exclude = exclude['country'].to_list()
+		# exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 
 		# Exclude countries with relatively high active case numbers	
 		checkbox = st.empty()
