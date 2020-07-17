@@ -144,20 +144,6 @@ def map(map_data, per_capita):
 
 
 def main():
-
-	# Load and wrangle data
-	cases, deaths, recoveries = load_data()
-	pop_data = load_pop_data()
-	countries_pop_data = pop_data.index.to_list()
-	country_list = tuple(cases.columns[1:])	
-	map_data = wrangle_data(country_list, cases, deaths, recoveries)
-	map_data = map_data[map_data['country'].isin(countries_pop_data)]
-	map_data['active_capita'] = map_data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
-	with pd.option_context('mode.use_inf_as_na', True):
-		map_data = map_data.dropna(subset=['active', 'active_capita'], how='all')
-	exclude = map_data.sort_values(by=['date','active']).tail(5)
-	exclude = exclude['country'].to_list()
-	exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 	
 
 	# Set radio widget to horizontal:
@@ -170,15 +156,23 @@ def main():
 	in epidemiology so please take the few attempts at interpreting the data here with a grain of salt. 
 	Fortunately (or unfortunately 😷), it speaks for itself.
 	""")
+
+	# Load and wrangle data
+	cases, deaths, recoveries = load_data()
+	pop_data = load_pop_data()
+	countries_pop_data = pop_data.index.to_list()
+	country_list = tuple(cases.columns[1:])	
+
+
 	
-	feature = st.sidebar.selectbox("Choose feature", ['Active cases', 'Per-capita map'])
+	feature = st.radio("Choose feature to display", ['Active cases', 'Per-capita map'])
 
 	if feature == 'Active cases':
 
 		st.write("""\
 		## Active cases
 
-		This first chart shows active cases of Covid-19 as reported by individual countries. Active cases 
+		This chart shows active cases of Covid-19 as reported by individual countries. Active cases 
 		are calculated in the following way:
 		
 		$$ 
@@ -225,9 +219,20 @@ def main():
 		st.write("""\
 		## Active cases 
 
-		This map shows the number of active cases through space and time.
+		This map shows the number of active cases through space and time. Fascinating to see how the United States
+		dominates in total active cases almost completely on its own, while per capita, it is accompanied not only
+		by Sweden but also the United Kingdom and Oman, with others coming up close behind. 
 		
 		""")
+
+		map_data = wrangle_data(country_list, cases, deaths, recoveries)
+		map_data = map_data[map_data['country'].isin(countries_pop_data)]
+		map_data['active_capita'] = map_data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
+		with pd.option_context('mode.use_inf_as_na', True):
+			map_data = map_data.dropna(subset=['active', 'active_capita'], how='all')
+		exclude = map_data.sort_values(by=['date','active']).tail(5)
+		exclude = exclude['country'].to_list()
+		exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 
 		# Exclude countries with relatively high active case numbers	
 		checkbox = st.empty()
