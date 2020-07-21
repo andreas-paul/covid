@@ -123,7 +123,7 @@ def map(map_data, per_capita):
 									colorbar_thickness=15,
 									colorbar_bgcolor='rgba(255,255,255,1)',
 									colorbar_tickfont=dict(size=11, color='grey')))
-		
+		fig.update_traces(marker_line_width=0)
 		return fig
 	else:
 		fig = px.choropleth(map_data, locationmode='country names',
@@ -134,7 +134,7 @@ def map(map_data, per_capita):
 									color_continuous_scale=px.colors.sequential.Viridis,
 									# range_color=(0,2000000)
 									)
-		fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, autosize=True, hovermode='closest')
+		fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0,"pad": 0}, autosize=True, hovermode='closest')
 		fig.update_layout(coloraxis=dict(colorbar_x=0.06, 
 									colorbar_y=0.45, 
 									colorbar_len=0.60, 
@@ -143,7 +143,8 @@ def map(map_data, per_capita):
 									colorbar_thickness=15,
 									colorbar_bgcolor='rgba(255,255,255,1)',
 									colorbar_tickfont=dict(size=11, color='grey')))
-		
+		fig.update_traces(marker_line_width=0)
+		fig.update_yaxes(automargin=True)
 		return fig
 
 
@@ -167,6 +168,7 @@ def main():
 	countries_pop_data = pop_data.index.to_list()
 	country_list = tuple(cases.columns[1:])	
 	map_data = wrangle_data(country_list, pop_data, countries_pop_data, cases, deaths, recoveries) 	
+	# map_data.to_csv('map_data.csv', index=False)
 	exclude = map_data.sort_values(by=['date','active']).tail(5)
 	exclude = exclude['country'].to_list()
 	exclude_from_map = map_data[~map_data['country'].isin(exclude)]
@@ -230,15 +232,6 @@ def main():
 		by Sweden but also the United Kingdom and Oman, with others coming up close behind. 
 		
 		""")
-
-		# map_data = wrangle_data(country_list, cases, deaths, recoveries)
-		# map_data = map_data[map_data['country'].isin(countries_pop_data)]
-		# map_data['active_capita'] = map_data.apply(lambda x: x.active / pop_data.at[f"{x.country}","population"] * 100000, axis=1)
-		# with pd.option_context('mode.use_inf_as_na', True):
-		# 	map_data = map_data.dropna(subset=['active', 'active_capita'], how='all')
-		# exclude = map_data.sort_values(by=['date','active']).tail(5)
-		# exclude = exclude['country'].to_list()
-		# exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 
 		# Exclude countries with relatively high active case numbers	
 		checkbox = st.empty()
