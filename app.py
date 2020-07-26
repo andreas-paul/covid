@@ -1,12 +1,15 @@
 import os
 import json
 import time
+import folium
 import datetime
 import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
+from streamlit_folium import folium_static
+
 
 
 st.markdown(
@@ -29,9 +32,18 @@ def load_data():
 	cases = pd.read_csv(url_cases, sep='\t')
 	deaths = pd.read_csv(url_deaths, sep='\t')
 	recoveries = pd.read_csv(url_recoveries, sep='\t')
-	cases.rename(columns={'Korea, South': 'South Korea', 'US': 'United States'}, inplace=True)
-	recoveries.rename(columns={'Korea, South': 'South Korea','US': 'United States'}, inplace=True)
-	deaths.rename(columns={'Korea, South': 'South Korea','US': 'United States'}, inplace=True)
+	cases.rename(columns={'Korea, South': 'South Korea', 
+							'US': 'United States', 
+							'Czechia': 'Czech Republic'}, 
+							inplace=True)
+	recoveries.rename(columns={'Korea, South': 'South Korea',
+							'US': 'United States', 
+							'Czechia': 'Czech Republic'}, 
+							inplace=True)
+	deaths.rename(columns={'Korea, South': 'South Korea',
+							'US': 'United States', 
+							'Czechia': 'Czech Republic'}, 
+							inplace=True)
 	cases.drop(['Diamond Princess', 'MS Zaandam'], inplace=True, axis=1)
 	recoveries.drop(['Diamond Princess', 'MS Zaandam'], inplace=True, axis=1)
 	deaths.drop(['Diamond Princess', 'MS Zaandam'], inplace=True, axis=1)
@@ -104,49 +116,6 @@ def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recover
 	return data
 
 
-def map(map_data, per_capita):
-	if not per_capita:
-		fig = px.choropleth(map_data, locationmode='country names',
-									locations='country',
-									color='active', 
-									animation_frame='date',
-									title = "Active cases",							                
-									color_continuous_scale=px.colors.sequential.Viridis,
-									# range_color=(0,2000000)
-									)
-		fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, autosize=True, hovermode='closest')
-		fig.update_layout(coloraxis=dict(colorbar_x=0.06, 
-									colorbar_y=0.45, 
-									colorbar_len=0.60, 
-									colorbar_title='',
-									colorbar_thicknessmode='pixels',
-									colorbar_thickness=15,
-									colorbar_bgcolor='rgba(255,255,255,1)',
-									colorbar_tickfont=dict(size=11, color='grey')))
-		fig.update_traces(marker_line_width=0)
-		return fig
-	else:
-		fig = px.choropleth(map_data, locationmode='country names',
-									locations='country',
-									color='active_capita', 
-									animation_frame='date',
-									title = "Active cases",							                
-									color_continuous_scale=px.colors.sequential.Viridis,
-									# range_color=(0,2000000)
-									)
-		fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0,"pad": 0}, autosize=True, hovermode='closest')
-		fig.update_layout(coloraxis=dict(colorbar_x=0.06, 
-									colorbar_y=0.45, 
-									colorbar_len=0.60, 
-									colorbar_title='',
-									colorbar_thicknessmode='pixels',
-									colorbar_thickness=15,
-									colorbar_bgcolor='rgba(255,255,255,1)',
-									colorbar_tickfont=dict(size=11, color='grey')))
-		fig.update_traces(marker_line_width=0)
-		fig.update_yaxes(automargin=True)
-		return fig
-
 
 def main():
 	
@@ -161,6 +130,7 @@ def main():
 	in epidemiology so please take the few attempts at interpreting the data here with a grain of salt. 
 	Fortunately (or unfortunately 😷), it speaks for itself.
 	""")
+
 
 	# Load and wrangle data
 	cases, deaths, recoveries = load_data()
@@ -227,26 +197,69 @@ def main():
 		st.write("""\
 		## Active cases 
 
-		This map shows the number of active cases through space and time. Fascinating to see how the United States
-		dominates in total active cases almost completely on its own, while per capita, it is accompanied not only
-		by Sweden but also the United Kingdom and Oman, with others coming up close behind. 
+		This map shows the number of active cases through space and time, based on a country's population. This means,
+		if a country has e.g. an active case count of 700 per capita, 700 people per 100,000 people were tested positive
+		for Covid-19.
 		
-		""")
+		⬅️ Open the sidebar to select different dates to show on the map!
+		
+		""")	
 
-		# Exclude countries with relatively high active case numbers	
-		checkbox = st.empty()
-		value = checkbox.checkbox(f"Exclude countries with high case counts ({exclude[4]}, {exclude[3]}, "
-								f"{exclude[2]}, {exclude[1]} and {exclude[0]})", '', )
-		if value:	
-			map_data = exclude_from_map
-			
-		per_capita = st.checkbox('per capita (100k)')
-			
-		# Exlude countries that do not report recoveries properly (manual list)
-		bad_rep = []
+		map_data['date'] = pd.to_datetime(map_data['date'], format='%Y-%m-%d').dt.date
+		
+		
+		min_date = map_data['date'].min()
+		max_date = map_data['date'].max()
 
-		fig = map(map_data, per_capita)
-		st.write(fig)
+		# st.sidebar.subheader('Move the slider to change the map')
+		# slider_ph = st.sidebar.empty()
+		# value = slider_ph.slider('Time', min_date, max_date, value=max_date)		
+		# if st.sidebar.button('🎬 Play'):
+		# 	for x in range(40):
+		# 		time.sleep(1)
+		# 		value = slider_ph.slider('Time', min_date, max_date, value + datetime.timedelta(days=1))
+		
+		# df = map_data.loc[map_data['date'] == value]
+
+		st.sidebar.subheader('Move the slider to change the map')
+		day = st.sidebar.slider('Time', min_date, max_date, value=max_date)
+		df = map_data.loc[map_data['date'] == day]
+
+
+# 
+		# file name - file is located in the working directory
+		geo = f'world.geojson' # geojson file
+
+		m = folium.Map(location=[35, 45],
+						name='Active cases',
+						zoom_start=1.0, 
+						width='100%', 
+						height='80%',
+						tiles='OpenStreetMap',
+						min_zoom=1,
+						max_zoom=3,
+						left='20%')
+
+		# add chloropleth
+		m.choropleth(
+			geo_data=geo,
+			data=df,
+			columns=['country', 'active_capita'],
+			key_on='feature.properties.name',
+			fill_color='YlOrRd',
+    		fill_opacity=0.9,
+   			line_opacity=0.2,
+			highlight = True,
+			nan_fill_color='white',
+			nan_fill_opacity=0.2
+		)
+		folium_static(m)
+
+
+	st.write("""The United States, Sweden and Panama dominate the current active case counts, and are the most likely 
+		to contract Covid-19 if you go there. While most countries in Asia and Africa 'seem' to fare better, there are outliers
+		such as Oman, who have extremely high active case counts compared to surrounding countries. It is likely, but not certain,
+		that reporting in African countries is lacking due to infrastructural problems.""")
 
 	# -----------------------------------------------------------------------------------------------------------
 
