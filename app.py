@@ -11,16 +11,16 @@ from streamlit_folium import folium_static
 
 
 
-st.markdown(
-        f"""
-<style>
-    .reportview-container .main .block-container{{
-        max-width: 900px;        
-    }}
-</style>
-""",
-        unsafe_allow_html=True,
-    )
+# st.markdown(
+#         f"""
+# <style>
+#     .reportview-container .main .block-container{{
+#         max-width: 900px;        
+#     }}
+# </style>
+# """,
+#         unsafe_allow_html=True,
+#     )
 
 
 @st.cache
@@ -197,12 +197,18 @@ def main():
 		## Active cases 
 
 		This map shows the number of active cases through space and time, based on a country's population. This means,
-		if a country has e.g. an active case count of 700 per capita, 700 people per 100,000 people were tested positive
-		for Covid-19.
-		
-		⬅️ Open the sidebar to select different dates to show on the map!
-		
+		if a country has e.g. an active case count of 700 per capita, 700 of 100,000 will theoretically be having a 
+		Covid-19 infection. Going a step further, this would mean that the probability of coming accross someone who is 
+		infected, is equal to:
+
 		""")	
+
+		st.latex(r'''\frac{700}{100,000} * 100 = 0.7\%''')
+
+		st.write("""
+		This back-on-the-envelope percentage seems low, but compared to other diseases, such as e.g. tuberculosis, which has a worldwide occurrence
+		of approximately 0.13% according to data of the World Health Organisation (2018), this is pretty damn high.
+		""")
 
 		map_data['date'] = pd.to_datetime(map_data['date'], format='%Y-%m-%d').dt.date
 		
@@ -220,8 +226,7 @@ def main():
 		
 		# df = map_data.loc[map_data['date'] == value]
 
-		st.sidebar.subheader('Move the slider to change the map')
-		day = st.sidebar.slider('Time', min_date, max_date, value=max_date)
+		day = st.slider('Move the slider to change time on the map', min_date, max_date, value=max_date)
 		df = map_data.loc[map_data['date'] == day]
 
 
@@ -229,18 +234,19 @@ def main():
 		# file name - file is located in the working directory
 		geo = f'world.geojson' # geojson file
 
-		m = folium.Map(location=[35, 45],
+		m = folium.Map(location=[34, 20],
 						name='Active cases',
 						zoom_start=1.0, 
 						width='100%', 
-						height='80%',
+						height='100%',
 						tiles='OpenStreetMap',
 						min_zoom=1,
-						max_zoom=3,
-						left='20%')
+						max_zoom=4
+						)
 
 		# add chloropleth
 		m.choropleth(
+			name='Active cases',
 			geo_data=geo,
 			data=df,
 			columns=['country', 'active_capita'],
@@ -248,16 +254,21 @@ def main():
 			fill_color='YlOrRd',
     		fill_opacity=0.9,
    			line_opacity=0.2,
-			highlight = True,
+			highlight = False,
 			nan_fill_color='white',
 			nan_fill_opacity=0.2
 		)
-		folium_static(m)
+
+		
+		folium.TileLayer('Stamen Terrain').add_to(m)
+		folium.TileLayer('Stamen Water Color').add_to(m)
+		folium.map.LayerControl('bottomleft', collapsed=True).add_to(m)
+		folium_static(m, width=700, height=400)
 
 
-	st.write("""The United States, Sweden and Panama dominate the current active case counts, and are the most likely 
-		to contract Covid-19 if you go there. While most countries in Asia and Africa 'seem' to fare better, there are outliers
-		such as Oman, who have extremely high active case counts compared to surrounding countries. It is likely, but not certain,
+	st.write("""In the data currently available, the United States, Sweden and Panama dominate the active case counts. 
+	    While most countries in Asia and Africa 'seem' to fare better, there are outliers such as Oman, 
+		who have extremely high active case counts compared to surrounding countries. Furthermore, it is likely but not certain
 		that reporting in African countries is lacking due to infrastructural problems.""")
 
 	# -----------------------------------------------------------------------------------------------------------
