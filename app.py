@@ -23,7 +23,7 @@ from streamlit_folium import folium_static
 #     )
 
 
-@st.cache
+@st.cache(max_entries=None)
 def load_data():	
 	url_cases = "http://www.dkriesel.com/_media/corona-cases.csv"
 	url_deaths = "http://www.dkriesel.com/_media/corona-deaths.csv"
@@ -49,12 +49,13 @@ def load_data():
 	return cases, deaths, recoveries
 
 
-# @st.cache
+@st.cache
 def load_pop_data():
 	pop_data = pd.read_csv('countries.csv', index_col='country')
 	return pop_data
 
 
+@st.cache(allow_output_mutation=True)
 def processing(countries, cases, deaths, recoveries):
 	"""
 	Function to combine data files and calculate active cases
