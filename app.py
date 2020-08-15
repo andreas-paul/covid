@@ -168,28 +168,15 @@ def main():
 
 		merged = processing(countries, cases, deaths, recoveries)
 
-		enrich = st.radio("Select enrichment", ('none', 'per capita (100k)'), 1)
-		
-		if enrich == 'none':
-			pass
-		elif enrich == 'per capita (100k)':
-			for item in countries:
-				merged[f'{item}'] = merged[f'{item}'] / pop_data.at[f"{item}","population"] * 100000		
+		merged_new = merged.copy()	
+		for item in countries:
+			merged_new[f'{item}'] = merged_new[f'{item}'] / pop_data.at[f"{item}","population"] * 100000
 
-		if len(merged) >= 1:
+		enrich = st.checkbox("Per capita (100k)")
+		if enrich: 
+			st.line_chart(merged_new)
+		else:
 			st.line_chart(merged)
-		else:
-			pass
-		
-		if len(countries) > 0:
-			df_list = []
-			for item in countries:
-				x = pop_data.loc[[f'{item}']]
-				df_list.append(x)		
-			pop_data_sel = pd.concat(df_list).sort_values(by='country')
-		else:
-			st.warning("No country selected above, so there's no data to show here.")
-			return
 
 
 	elif feature == 'Per-capita map':
@@ -207,8 +194,9 @@ def main():
 		st.latex(r'''\frac{700}{100,000} * 100 = 0.7\%''')
 
 		st.write("""
-		This back-on-the-envelope percentage seems low, but compared to other diseases, such as e.g. tuberculosis, which has a worldwide occurrence
-		of approximately 0.13% according to data of the World Health Organisation (2018), this is pretty damn high.
+		This back-on-the-envelope percentage seems low, but compared to other diseases, such as e.g. 
+		tuberculosis, which has a worldwide occurrence of approximately 0.13\% according to data of 
+		the World Health Organisation (2018), this is pretty damn high.
 		""")
 
 		map_data['date'] = pd.to_datetime(map_data['date'], format='%Y-%m-%d').dt.date
@@ -217,30 +205,17 @@ def main():
 		min_date = map_data['date'].min()
 		max_date = map_data['date'].max()
 
-		# st.sidebar.subheader('Move the slider to change the map')
-		# slider_ph = st.sidebar.empty()
-		# value = slider_ph.slider('Time', min_date, max_date, value=max_date)		
-		# if st.sidebar.button('🎬 Play'):
-		# 	for x in range(40):
-		# 		time.sleep(1)
-		# 		value = slider_ph.slider('Time', min_date, max_date, value + datetime.timedelta(days=1))
-		
-		# df = map_data.loc[map_data['date'] == value]
-
 		day = st.slider('Move the slider to change time on the map', min_date, max_date, value=max_date)
 		df = map_data.loc[map_data['date'] == day]
 
-
-# 
-		# file name - file is located in the working directory
 		geo = f'world.geojson' # geojson file
 
-		m = folium.Map(location=[34, 20],
+		m = folium.Map(location=[50, 10],
 						name='Active cases',
 						zoom_start=1.0, 
 						width='100%', 
 						height='100%',
-						tiles='OpenStreetMap',
+						tiles=None,
 						min_zoom=1,
 						max_zoom=4
 						)
@@ -257,15 +232,20 @@ def main():
    			line_opacity=0.2,
 			highlight = False,
 			nan_fill_color='white',
-			nan_fill_opacity=0.2
+			nan_fill_opacity=0.2,
+		
 		)
 
 		
-		folium.TileLayer('Stamen Terrain').add_to(m)
-		folium.TileLayer('Stamen Water Color').add_to(m)
+		# folium.TileLayer('Stamen Terrain').add_to(m)
+		# folium.TileLayer('Stamen Water Color').add_to(m)
 		folium.map.LayerControl('bottomleft', collapsed=True).add_to(m)
 		folium_static(m, width=700, height=400)
 
+	st.write('')
+	st.write("""**Top 3 countries by active cases:**""")
+
+	st.write(df[['country', 'active', 'active_capita']].sort_values(by='active_capita', ascending=False).head(3))
 
 	st.write("""In the data currently available, the United States, Sweden and Panama dominate the active case counts. 
 	    While most countries in Asia and Africa 'seem' to fare better, there are outliers such as Oman, 
