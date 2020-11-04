@@ -28,9 +28,9 @@ def load_data():
 	url_cases = "http://www.dkriesel.com/_media/corona-cases.csv"
 	url_deaths = "http://www.dkriesel.com/_media/corona-deaths.csv"
 	url_recoveries = "http://www.dkriesel.com/_media/corona-recoveries.csv"
-	cases = pd.read_csv(url_cases, sep='\t')
-	deaths = pd.read_csv(url_deaths, sep='\t')
-	recoveries = pd.read_csv(url_recoveries, sep='\t')
+	cases = pd.read_csv(url_cases, sep='\t', decimal=',')
+	deaths = pd.read_csv(url_deaths, sep='\t', decimal=',')
+	recoveries = pd.read_csv(url_recoveries, sep='\t', decimal=',')
 	cases.rename(columns={'Korea, South': 'South Korea', 
 							'US': 'United States', 
 							'Czechia': 'Czech Republic'}, 
@@ -162,7 +162,7 @@ def main():
 		while at the same time also showing a steady increase in the total case count.
 		""")
 		
-		countries = st.multiselect('Choose one or multiple countries', country_list, ['Germany', 'United States'])
+		countries = st.multiselect('Choose one or multiple countries', country_list, ['Germany', 'Japan', 'United Arab Emirates'])
 		if not countries:
 			st.warning("Please select at least one country.")
 
@@ -172,7 +172,7 @@ def main():
 		for item in countries:
 			merged_new[f'{item}'] = merged_new[f'{item}'] / pop_data.at[f"{item}","population"] * 100000
 
-		enrich = st.checkbox("Per capita (100k)")
+		enrich = st.checkbox("Per capita (100k)", value=True)
 		if enrich: 
 			st.line_chart(merged_new)
 		else:
@@ -242,15 +242,13 @@ def main():
 		folium.map.LayerControl('bottomleft', collapsed=True).add_to(m)
 		folium_static(m, width=700, height=400)
 
-	st.write('')
-	st.write("""**Top 3 countries by active cases:**""")
+		st.write('')
+		st.write("""**Top 3 countries by active cases per capita (100k):**""")
 
-	st.write(df[['country', 'active', 'active_capita']].sort_values(by='active_capita', ascending=False).head(3))
-
-	st.write("""In the data currently available, the United States, Sweden and Panama dominate the active case counts. 
-	    While most countries in Asia and Africa 'seem' to fare better, there are outliers such as Oman, 
-		who have extremely high active case counts compared to surrounding countries. Furthermore, it is likely but not certain
-		that reporting in African countries is lacking due to infrastructural problems.""")
+		df = df[['country', 'active', 'active_capita']].sort_values(by='active_capita', ascending=False).head(3).reset_index(drop=True)
+		st.text(f"1. {df.at[0, 'country']}: {df.at[0, 'active_capita']:.0f}")
+		st.text(f"2. {df.at[1, 'country']}: {df.at[1, 'active_capita']:.0f}")
+		st.text(f"3. {df.at[2, 'country']}: {df.at[2, 'active_capita']:.0f}")
 
 	# -----------------------------------------------------------------------------------------------------------
 
