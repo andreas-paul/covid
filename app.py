@@ -10,19 +10,6 @@ import matplotlib.pyplot as plt
 from streamlit_folium import folium_static
 
 
-
-# st.markdown(
-#         f"""
-# <style>
-#     .reportview-container .main .block-container{{
-#         max-width: 900px;        
-#     }}
-# </style>
-# """,
-#         unsafe_allow_html=True,
-#     )
-
-
 @st.cache(max_entries=None)
 def load_data():	
 	url_cases = "http://www.dkriesel.com/_media/corona-cases.csv"
