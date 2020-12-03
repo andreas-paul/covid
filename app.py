@@ -51,7 +51,7 @@ def load_data():
 
 @st.cache
 def load_pop_data():
-	pop_data = pd.read_csv('countries.csv', index_col='country')
+	pop_data = pd.read_csv('data/countries.csv', index_col='country')
 	return pop_data
 
 
@@ -208,7 +208,7 @@ def main():
 		day = st.slider('Move the slider to change time on the map', min_date, max_date, value=max_date)
 		df = map_data.loc[map_data['date'] == day]
 
-		geo = f'world.geojson' # geojson file
+		geo = f'data/world.geojson' # geojson file
 
 		m = folium.Map(location=[50, 10],
 						name='Active cases',
