@@ -1,8 +1,12 @@
 This is an experimental and interactive streamlit app to explore data related to Covid-19.
 
-![](img/example.png)
+<p align="center">
+<img src="img/example.png" width="250"/>
+</p>
 
-![](img/example_2.png)
+<p align="center">
+<img src="img/example_2.png" width="250"/>
+</p>
 
 Data sources:
 
