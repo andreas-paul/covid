@@ -128,7 +128,12 @@ def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recover
 
 
 def main():
-    # st.set_page_config(layout="wide")
+    st.set_page_config(
+        page_title="Explore Covid-19 data",
+        page_icon="🧊",
+        initial_sidebar_state="expanded",
+    )
+
     st.markdown(
         f"""
     <style>
@@ -153,11 +158,9 @@ def main():
     st.write("""	
     # 🦠 Covid-19 data exploration
 
-    This is an experimental app to explore data related to Covid-19, which largely speaks for itself.
+    This is an experimental app developed in Python and the fabulous streamlit package, 
+    to explore data related to the Covid-19 pandemic (2019 - present). Select features on the sidebar to the left. 
     """)
-
-    st.info("If you're unable to see the text on this page, "
-            "please switch to the light theme using the menu button in the upper right (Settings)")
 
     # Load and wrangle data
     cases, deaths, recoveries = load_data()
@@ -186,9 +189,8 @@ def main():
         active = cases - (deaths + recoveries) 
         $$
         
-        Some countries do not report recoveries (e.g., in The Netherlands), but most report deaths. This results 
-        in the number of active	cases sometimes being equal or similar to _cases_ - _deaths_ only, 
-        while at the same time also showing a steady increase in the total case count.
+        Some countries do not report recoveries but most report deaths. This will result
+        in an ever increasing number of active cases and thus should be interpreted with care (e.g., _The Netherlands_).
         """)
 
         countries = st.multiselect('Choose one or multiple countries', country_list,
@@ -281,11 +283,13 @@ def main():
     # -----------------------------------------------------------------------------------------------------------
 
     # Bottom line (credits)
+    st.sidebar.warning("If you're unable to see the text on the right, "
+                    "please switch to the light theme using the menu button in the upper right (Settings)")
     last = pd.DataFrame({'date': [cases['Date'].iloc[-1]]})
     last['date'] = pd.to_datetime(last['date'], infer_datetime_format=True)
     last = last.at[0, 'date']
     status = f'Latest data from {last.strftime("%d %B %Y")}.'
-    st.info(f"{status} Data sources: [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)"
+    st.sidebar.info(f"{status} Data sources: [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)"
             f" | [worldometer](https://worldometers.info)")
 
 
