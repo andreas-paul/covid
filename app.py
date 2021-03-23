@@ -156,11 +156,14 @@ def main():
     This is an experimental app to explore data related to Covid-19, which largely speaks for itself.
     """)
 
+    st.info("If you're unable to see the text on this page, "
+            "please switch to the light theme using the menu button in the upper right (Settings)")
+
     # Load and wrangle data
     cases, deaths, recoveries = load_data()
 
     pop_data = load_pop_data()
-    countries_pop_data = pop_data.index.to_list()
+    # countries_pop_data = pop_data.index.to_list()
     country_list = tuple(cases.columns[1:])
     # map_data = wrangle_data(country_list, pop_data, countries_pop_data, cases, deaths, recoveries)
     # map_data.to_csv('map_data.csv', index=False)
@@ -169,7 +172,7 @@ def main():
     # exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 
     # feature = st.radio("Choose feature to display", ['Active cases', 'Per-capita map'])
-    feature = st.radio("Choose feature to display", ['Active cases'])
+    feature = st.sidebar.radio("Choose feature to display", ['Active cases'])
 
     if feature == 'Active cases':
 
