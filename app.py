@@ -158,8 +158,9 @@ def main():
     st.write("""	
     # 🦠 Covid-19 data exploration
 
-    This is an experimental app developed in Python and the fabulous streamlit package, 
-    to explore data related to the Covid-19 pandemic (2019 - present). Select features on the sidebar to the left. 
+    This is an experimental app developed in Python with the fabulous [streamlit](https://streamlit.io/) package, 
+    to help explore and understand data related to the Covid-19 pandemic (2019 - present). Please use the options in 
+    the sidebar (left side) to select an analysis/visualisation.
     """)
 
     # Load and wrangle data
@@ -182,7 +183,7 @@ def main():
         st.write("""\
         ## Active cases
 
-        This chart shows active cases of Covid-19 as reported by individual countries. Active cases 
+        This chart shows active cases of Covid-19 as reported by individual countries (_vertical axis, y_). Active cases 
         are calculated in the following way:
         
         $$ 
@@ -190,7 +191,7 @@ def main():
         $$
         
         Some countries do not report recoveries but most report deaths. This will result
-        in an ever increasing number of active cases and thus should be interpreted with care (e.g., _The Netherlands_).
+        in an ever increasing number of active cases and should thus be interpreted with care (e.g., _The Netherlands_).
         """)
 
         countries = st.multiselect('Choose one or multiple countries', country_list,
@@ -206,9 +207,9 @@ def main():
 
         enrich = st.checkbox("Per capita (100k)", value=True)
         if enrich:
-            st.line_chart(merged_new)
+            st.line_chart(merged_new, height=400)
         else:
-            st.line_chart(merged)
+            st.line_chart(merged, height=400)
 
     elif feature == 'Per-capita map':
 
@@ -288,9 +289,17 @@ def main():
     last = pd.DataFrame({'date': [cases['Date'].iloc[-1]]})
     last['date'] = pd.to_datetime(last['date'], infer_datetime_format=True)
     last = last.at[0, 'date']
-    status = f'Latest data from {last.strftime("%d %B %Y")}.'
-    st.sidebar.info(f"{status} Data sources: [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)"
-            f" | [worldometer](https://worldometers.info)")
+    st.sidebar.markdown("""
+                        Developer: A. Paul                        
+                        Last update: 23 March 2021
+                        """)
+    status = f'Latest data from: {last.strftime("%d %B %Y")}'
+    st.sidebar.markdown(f" {status}")
+
+    st.sidebar.markdown("""Data sources:     
+                        * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)    
+                        * [Worldometers](https://worldometers.info)
+                        """)
 
 
 if __name__ == "__main__":
