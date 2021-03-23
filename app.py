@@ -128,6 +128,8 @@ def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recover
 
 
 def main():
+    st.set_page_config(layout="wide")
+
     # Set radio widget to horizontal:
     st.write('<style>div.Widget.row-widget.stRadio > div{flex-direction:row;}</style>', unsafe_allow_html=True)
 
