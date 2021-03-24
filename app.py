@@ -47,6 +47,7 @@ def load_data():
     cases = cases.transpose()
     cases.columns = cases.iloc[0]
     cases['Date'] = cases.index
+    cases = cases.iloc[1:]
     st.write(cases.head())
     cases = cases.reset_index(drop=True)
     cases = cases.rename(columns={'Country/Region': 'Date'})
