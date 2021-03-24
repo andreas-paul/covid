@@ -23,19 +23,6 @@ def load_data():
     deaths = pd.read_csv(url_deaths)
     recoveries = pd.read_csv(url_recoveries)
 
-    cases.rename(columns={'Korea, South': 'South Korea',
-                          'US': 'United States',
-                          'Czechia': 'Czech Republic'},
-                 inplace=True)
-    recoveries.rename(columns={'Korea, South': 'South Korea',
-                               'US': 'United States',
-                               'Czechia': 'Czech Republic'},
-                      inplace=True)
-    deaths.rename(columns={'Korea, South': 'South Korea',
-                           'US': 'United States',
-                           'Czechia': 'Czech Republic'},
-                  inplace=True)
-
     cases = cases.drop(['Province/State', 'Lat', 'Long'], axis=1)
     deaths = deaths.drop(['Province/State', 'Lat', 'Long'], axis=1)
     recoveries = recoveries.drop(['Province/State', 'Lat', 'Long'], axis=1)
@@ -296,11 +283,11 @@ def main():
     last = last.at[0, 'date']
     status = f'Latest data from: {last.strftime("%d %B %Y")}'
     st.sidebar.markdown("""
-                        Developer: A. Paul                        
-                        Last update: 23 March 2021
-                        Data sources:     
-                        * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)    
-                        * [Worldometers](https://worldometers.info)
+                        Developer: A. Paul\                  
+                        Last update: 23 March 2021\
+                        Data sources:\
+                        * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)\    
+                        * [Worldometers](https://worldometers.info)\
                         """)
     
     st.sidebar.markdown(f" {status}")
