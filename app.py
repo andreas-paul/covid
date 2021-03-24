@@ -189,9 +189,9 @@ def main():
     # exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 
     # feature = st.radio("Choose feature to display", ['Active cases', 'Per-capita map'])
-    feature = st.sidebar.radio("Choose feature to display", ['Active cases'])
+    feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases', '💉 Vaccines'])
 
-    if feature == 'Active cases':
+    if feature == '🤒 Active cases':
 
         st.write("""\
         ## Active cases
@@ -224,94 +224,37 @@ def main():
         else:
             bokeh_plot(merged)
 
-    elif feature == 'Per-capita map':
-
+    elif feature == '💉 Vaccines':
         st.write("""\
-        ## Active cases 
+                ## Vaccines
 
-        This map shows the number of active cases through space and time, based on a country's population. This means,
-        if a country has e.g. an active case count of 700 per capita, 700 of 100,000 will theoretically be having a 
-        Covid-19 infection. Going a step further, this would mean that the probability of coming accross someone who is 
-        infected, is equal to:
-
-        """)
-
-        st.latex(r'''\frac{700}{100,000} * 100 = 0.7\%''')
-
-        st.write("""
-        This back-on-the-envelope percentage seems low, but compared to other diseases, such as e.g. 
-        tuberculosis, which has a worldwide occurrence of approximately 0.13\% according to data of 
-        the World Health Organisation (2018), this is pretty damn high.
-        """)
-
-        map_data['date'] = pd.to_datetime(map_data['date'], infer_datetime_format=True).dt.date
-
-        min_date = map_data['date'].min()
-        max_date = map_data['date'].max()
-
-        day = st.slider('Move the slider to change time on the map', min_date, max_date, value=max_date)
-        df = map_data.loc[map_data['date'] == day]
-
-        geo = f'data/world.geojson'  # geojson file
-
-        m = folium.Map(location=[50, 10],
-                       name='Active cases',
-                       zoom_start=1.0,
-                       width='100%',
-                       height='100%',
-                       tiles=None,
-                       min_zoom=1,
-                       max_zoom=4
-                       )
-
-        # add chloropleth
-        m.choropleth(
-            name='Active cases',
-            geo_data=geo,
-            data=df,
-            columns=['country', 'active_capita'],
-            key_on='feature.properties.name',
-            fill_color='YlOrRd',
-            fill_opacity=0.9,
-            line_opacity=0.2,
-            highlight=False,
-            nan_fill_color='white',
-            nan_fill_opacity=0.2,
-
-        )
-
-        # folium.TileLayer('Stamen Terrain').add_to(m)
-        # folium.TileLayer('Stamen Water Color').add_to(m)
-        folium.map.LayerControl('bottomleft', collapsed=True).add_to(m)
-        folium_static(m, width=700, height=400)
-
-        st.write('')
-        st.write("""**Top 3 countries by active cases per capita (100k):**""")
-
-        df = df[['country', 'active', 'active_capita']].sort_values(by='active_capita', ascending=False).head(
-            3).reset_index(drop=True)
-        st.text(f"1. {df.at[0, 'country']}: {df.at[0, 'active_capita']:.0f}")
-        st.text(f"2. {df.at[1, 'country']}: {df.at[1, 'active_capita']:.0f}")
-        st.text(f"3. {df.at[2, 'country']}: {df.at[2, 'active_capita']:.0f}")
-
+                This chart shows doses of vaccines given, as reported by individual countries (_vertical axis, y_). 
+                A number of options can be chosen, including comparison with active cases.  
+                
+                https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/global_data/time_series_covid19_vaccine_global.csv
+                """)
     # -----------------------------------------------------------------------------------------------------------
 
     # Bottom line (credits)
-    st.sidebar.warning("If you're unable to see the text on the right, "
-                    "please switch to the light theme using the menu button in the upper right (Settings)")
+
     last = pd.DataFrame({'date': [cases['Date'].iloc[-1]]})
     last['date'] = pd.to_datetime(last['date'], infer_datetime_format=True)
     last = last.at[0, 'date']
-    status = f'Latest data from: {last.strftime("%d %B %Y")}'
+    status = f'🚀 Latest data from: {last.strftime("%d %B %Y")}'
     st.sidebar.markdown("""
-                        Developer: A. Paul                        
-                        Last update: 23 March 2021                        
-                        Data sources:
+                        🛠️ Developer: A. Paul                        
+                        🌱 Last update: 24 March 2021     
+                                           
+                        ℹ️ Data sources:
                         * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)   
                         * [Worldometers](https://worldometers.info)
                         """)
     
     st.sidebar.markdown(f" {status}")
+
+    st.sidebar.warning("If you're having difficulties to see the text on the right, "
+                       "please switch to the light theme by clicking on the menu button in the upper right, "
+                       "and then go to Settings > Theme.")
     
 
 if __name__ == "__main__":
