@@ -45,6 +45,8 @@ def load_data():
     recoveries = recoveries.groupby('Country/Region').sum().reset_index()
     
     cases = cases.transpose()
+    
+    st.write(cases.head)
     cases.columns = cases.iloc[1]
     cases = cases.iloc[4:]
     cases['Date'] = cases.index
