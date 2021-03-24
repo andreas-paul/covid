@@ -4,4 +4,4 @@ numpy
 pandas
 folium
 streamlit-folium
-bokeh==2.2.3git
+bokeh==2.2.3
