@@ -36,6 +36,14 @@ def load_data():
                            'Czechia': 'Czech Republic'},
                   inplace=True)
 
+    cases = cases.drop(['Province/State', 'Lat', 'Long'], axis=1)
+    deaths = deaths.drop(['Province/State', 'Lat', 'Long'], axis=1)
+    recoveries = recoveries.drop(['Province/State', 'Lat', 'Long'], axis=1)
+    
+    cases = cases.groupby('Country/Region').sum().reset_index()    
+    deaths = deaths.groupby('Country/Region').sum().reset_index()
+    recoveries = recoveries.groupby('Country/Region').sum().reset_index()
+    
     cases = cases.transpose()
     cases.columns = cases.iloc[1]
     cases = cases.iloc[4:]
