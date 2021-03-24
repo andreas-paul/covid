@@ -3,11 +3,16 @@ import json
 import time
 import folium
 import datetime
+import itertools
 import numpy as np
 import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 from streamlit_folium import folium_static
+from bokeh.plotting import figure
+from bokeh.events import DoubleTap
+from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter
+from bokeh.palettes import Dark2_5 as palette
 
 
 @st.cache(max_entries=None, suppress_st_warning=True)
@@ -119,6 +124,22 @@ def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recover
     return data
 
 
+def bokeh_plot(data):
+    p = figure(title='Active cases', x_axis_type='datetime', x_axis_label='Time', y_axis_label='Number of cases', toolbar_location=None)
+    x = data.index
+
+    colors = itertools.cycle(palette)
+
+    for column in data.columns:
+        df = list(data[column])
+        p.line(x, df, legend_label=column, line_width=2, color=next(colors))
+
+    p.xaxis.formatter = DatetimeTickFormatter(months=['%B %Y'])
+    p.toolbar.active_scroll = p.select_one(WheelZoomTool)
+    p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+    st.bokeh_chart(p, use_container_width=True)
+
+
 def main():
     st.set_page_config(
         page_title="Explore Covid-19 data",
@@ -199,9 +220,9 @@ def main():
 
         enrich = st.checkbox("Per capita (100k)", value=True)
         if enrich:
-            st.line_chart(merged_new, height=400)
+            bokeh_plot(merged_new)
         else:
-            st.line_chart(merged, height=400)
+            bokeh_plot(merged)
 
     elif feature == 'Per-capita map':
 
@@ -283,11 +304,11 @@ def main():
     last = last.at[0, 'date']
     status = f'Latest data from: {last.strftime("%d %B %Y")}'
     st.sidebar.markdown("""
-                        Developer: A. Paul\                  
-                        Last update: 23 March 2021\
-                        Data sources:\
-                        * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)\    
-                        * [Worldometers](https://worldometers.info)\
+                        Developer: A. Paul                        
+                        Last update: 23 March 2021                        
+                        Data sources:
+                        * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)   
+                        * [Worldometers](https://worldometers.info)
                         """)
     
     st.sidebar.markdown(f" {status}")
@@ -295,5 +316,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# TODO Implement download from S3
