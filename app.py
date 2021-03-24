@@ -294,18 +294,17 @@ def main():
     last = pd.DataFrame({'date': [cases['Date'].iloc[-1]]})
     last['date'] = pd.to_datetime(last['date'], infer_datetime_format=True)
     last = last.at[0, 'date']
+    status = f'Latest data from: {last.strftime("%d %B %Y")}'
     st.sidebar.markdown("""
                         Developer: A. Paul                        
                         Last update: 23 March 2021
-                        """)
-    status = f'Latest data from: {last.strftime("%d %B %Y")}'
-    st.sidebar.markdown(f" {status}")
-
-    st.sidebar.markdown("""Data sources:     
+                        Data sources:     
                         * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)    
                         * [Worldometers](https://worldometers.info)
                         """)
-
+    
+    st.sidebar.markdown(f" {status}")
+    
 
 if __name__ == "__main__":
     main()
