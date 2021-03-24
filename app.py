@@ -48,23 +48,19 @@ def load_data():
     cases.columns = cases.iloc[0]
     cases['Date'] = cases.index
     cases = cases.iloc[1:]
-    st.write(cases.head())
     cases = cases.reset_index(drop=True)
-    cases = cases.rename(columns={'Country/Region': 'Date'})
 
     recoveries = recoveries.transpose()
-    recoveries.columns = recoveries.iloc[1]
-    recoveries = recoveries.iloc[4:]
+    recoveries.columns = recoveries.iloc[0]
     recoveries['Date'] = recoveries.index
+    recoveries = recoveries.iloc[1:]
     recoveries = recoveries.reset_index(drop=True)
-    recoveries = recoveries.rename(columns={'Country/Region': 'Date'})
 
     deaths = deaths.transpose()
-    deaths.columns = deaths.iloc[1]
-    deaths = deaths.iloc[4:]
+    deaths.columns = deaths.iloc[0]
     deaths['Date'] = deaths.index
+    deaths = deaths.iloc[1:]
     deaths = deaths.reset_index(drop=True)
-    deaths = deaths.rename(columns={'Country/Region': 'Date'})
 
     return cases, deaths, recoveries
 
