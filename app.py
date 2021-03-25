@@ -125,7 +125,13 @@ def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recover
 
 
 def bokeh_plot(data):
-    p = figure(title='Active cases', x_axis_type='datetime', x_axis_label='Time', y_axis_label='Number of cases', toolbar_location=None)
+    p = figure(title='Active cases',
+               x_axis_type='datetime',
+               x_axis_label='Time',
+               y_axis_label='Number of cases',
+               toolbar_location=None,
+               plot_height=400
+               )
     x = data.index
 
     colors = itertools.cycle(palette)
