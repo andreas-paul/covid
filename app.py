@@ -1,17 +1,10 @@
-import os
-import json
-import time
-import folium
-import datetime
 import itertools
-import numpy as np
 import pandas as pd
 import streamlit as st
-import matplotlib.pyplot as plt
-from streamlit_folium import folium_static
+from datetime import datetime
 from bokeh.plotting import figure
 from bokeh.events import DoubleTap
-from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter
+from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter, Span, Label
 from bokeh.palettes import Dark2_5 as palette
 
 
@@ -140,7 +133,27 @@ def bokeh_plot(data):
         df = list(data[column])
         p.line(x, df, legend_label=column, line_width=2, color=next(colors))
 
-    p.xaxis.formatter = DatetimeTickFormatter(months=['%B %Y'])
+    for year in ['2020', '2021', '2022']:
+        vline = Span(location=datetime.strptime(f'1/1/{year}', '%d/%m/%Y'),
+                     dimension='height',
+                     line_color='black',
+                     line_width=0.25,
+                     )
+        text = Label(x=datetime.strptime(f'1/1/{year}', '%d/%m/%Y'), y=0,
+                     text=f"{year}",
+                     text_color='black',
+                     angle=1.5708,
+                     text_font_size='8pt',
+                     text_alpha=0.7,
+                     x_offset=15,
+                     y_offset=-12
+                     )
+
+        p.renderers.extend([vline])
+        p.add_layout(text)
+
+    p.legend.location = "top_left"
+    p.xaxis.formatter = DatetimeTickFormatter(months=['%B'])
     p.toolbar.active_scroll = p.select_one(WheelZoomTool)
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
     st.bokeh_chart(p, use_container_width=True)
@@ -184,17 +197,9 @@ def main():
 
     # Load and wrangle data
     cases, deaths, recoveries = load_data()
-
     pop_data = load_pop_data()
-    # countries_pop_data = pop_data.index.to_list()
     country_list = tuple(cases.columns[1:])
-    # map_data = wrangle_data(country_list, pop_data, countries_pop_data, cases, deaths, recoveries)
-    # map_data.to_csv('map_data.csv', index=False)
-    # exclude = map_data.sort_values(by=['date', 'active']).tail(5)
-    # exclude = exclude['country'].to_list()
-    # exclude_from_map = map_data[~map_data['country'].isin(exclude)]
 
-    # feature = st.radio("Choose feature to display", ['Active cases', 'Per-capita map'])
     feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases', '💉 Vaccines'])
 
     if feature == '🤒 Active cases':
