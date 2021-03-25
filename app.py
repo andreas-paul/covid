@@ -4,7 +4,7 @@ import streamlit as st
 from datetime import datetime
 from bokeh.plotting import figure
 from bokeh.events import DoubleTap
-from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter, Span, Label
+from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter, Span, Label, HoverTool
 from bokeh.palettes import Dark2_5 as palette
 
 
@@ -152,10 +152,15 @@ def bokeh_plot(data):
         p.renderers.extend([vline])
         p.add_layout(text)
 
+    hover = p.select(dict(type=HoverTool))
+    hover.tooltips = [("cases", "@y")]
+
     p.legend.location = "top_left"
     p.xaxis.formatter = DatetimeTickFormatter(months=['%B'])
+    p.xaxis.axis_label_text_align = 'right'  # <== THIS APPEARS TO DO NOTHING
     p.toolbar.active_scroll = p.select_one(WheelZoomTool)
     p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
+
     st.bokeh_chart(p, use_container_width=True)
 
 
