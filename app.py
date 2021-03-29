@@ -50,6 +50,26 @@ def load_data():
     return cases, deaths, recoveries
 
 
+@st.cache(suppress_st_warning=True)
+def load_vaccine_data():
+
+    url = 'https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/' \
+          'global_data/time_series_covid19_vaccine_global.csv'
+    df = pd.read_csv(url)
+    df = df.drop(['UID', 'Report_Date_String'], axis=1)
+    df['Date'] = pd.to_datetime(df['Date'], infer_datetime_format=True)
+
+    df_doses = df.reset_index().pivot('Country_Region', 'Date', 'Doses_admin', )
+    df_parti = df.reset_index().pivot('Country_Region', 'Date', 'People_partially_vaccinated')
+    df_fully = df.reset_index().pivot('Country_Region', 'Date', 'People_fully_vaccinated')
+
+    df_doses = df_doses.transpose()
+    df_parti = df_parti.transpose()
+    df_fully = df_fully.transpose()
+
+    return df_doses, df_parti, df_fully
+
+
 @st.cache
 def load_pop_data():
     pop_data = pd.read_csv('data/countries.csv', index_col='country')
@@ -197,15 +217,18 @@ def main():
 
     This is an experimental app developed in Python with the fabulous [streamlit](https://streamlit.io/) package, 
     to help explore and understand data related to the Covid-19 pandemic (2019 - present). Please use the options in 
-    the sidebar (left side) to select an analysis/visualisation.
+    the sidebar (left side) to select an analysis or visualisation.
     """)
 
     # Load and wrangle data
     cases, deaths, recoveries = load_data()
     pop_data = load_pop_data()
     country_list = tuple(cases.columns[1:])
+    vac_doses, vac_partial, vac_fully = load_vaccine_data()
 
-    feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases', '💉 Vaccines'])
+    feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases',
+                                                             '💉 Vaccines',
+                                                             '✔️ Data exploration'])
 
     if feature == '🤒 Active cases':
 
@@ -247,8 +270,29 @@ def main():
                 This chart shows doses of vaccines given, as reported by individual countries (_vertical axis, y_). 
                 A number of options can be chosen, including comparison with active cases.  
                 
-                https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/global_data/time_series_covid19_vaccine_global.csv
                 """)
+
+        countries = st.multiselect('Choose one or multiple countries', country_list,
+                                   ['Germany', 'Japan', 'United Arab Emirates'])
+        if not countries:
+            st.warning("Please select at least one country.")
+
+        left, center, right = st.beta_columns(3)
+        with left:
+            enrich = st.checkbox("Per capita (100k)", value=True)
+        with center:
+            compar = st.checkbox("Compare to active", value=False)
+
+
+    elif feature == '✔️ Data exploration':
+        st.write("""\
+                  ## Data exploration
+
+                  This area offers a variety of graphs that compare various types of data, something that is very
+                  difficulty to find elsewhere. In particular, the focus is on showing the connection between the
+                  incidence-number (cases per 100k people) as used in Germany, number of PCR tests conducted, 
+                  implementation of movement and other restrictions and vaccine doses.
+                  """)
     # -----------------------------------------------------------------------------------------------------------
 
     # Bottom line (credits)
@@ -264,6 +308,7 @@ def main():
                         ℹ️ Data sources:
                         * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)   
                         * [Worldometers](https://worldometers.info)
+                        * [Centers for Civic Impact](https://github.com/govex/COVID-19)
                         """)
     
     st.sidebar.markdown(f" {status}")
