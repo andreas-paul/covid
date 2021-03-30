@@ -130,12 +130,6 @@ def main():
                 enrich = st.checkbox("Per capita (100k)", value=True)
             with center:
                 compar = st.checkbox("Compare to active", value=False)
-            with right:
-                log = st.checkbox("Log-scale", value=False)
-
-            scale = 'linear'
-            if log:
-                scale = 'log'
 
             if enrich:
                 bokeh_plot_vaccines(vac_doses_pop[countries], per_capita=True)
