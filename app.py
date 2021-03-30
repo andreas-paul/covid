@@ -1,167 +1,6 @@
-import itertools
-import pandas as pd
 import streamlit as st
-from datetime import datetime
-from bokeh.plotting import figure
-from bokeh.events import DoubleTap
-from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter, Span, Label, HoverTool
-from bokeh.palettes import Dark2_5 as palette
-
-
-@st.cache(max_entries=None, suppress_st_warning=True)
-def load_data():
-    url_cases = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data" \
-                "/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv "
-    url_deaths = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data" \
-                 "/csse_covid_19_time_series/time_series_covid19_deaths_global.csv "
-    url_recoveries = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data" \
-                     "/csse_covid_19_time_series/time_series_covid19_recovered_global.csv "
-
-    cases = pd.read_csv(url_cases)
-    deaths = pd.read_csv(url_deaths)
-    recoveries = pd.read_csv(url_recoveries)
-
-    cases = cases.drop(['Province/State', 'Lat', 'Long'], axis=1)
-    deaths = deaths.drop(['Province/State', 'Lat', 'Long'], axis=1)
-    recoveries = recoveries.drop(['Province/State', 'Lat', 'Long'], axis=1)
-    
-    cases = cases.groupby('Country/Region').sum().reset_index()    
-    deaths = deaths.groupby('Country/Region').sum().reset_index()
-    recoveries = recoveries.groupby('Country/Region').sum().reset_index()
-    
-    cases = cases.transpose()
-    cases.columns = cases.iloc[0]
-    cases['Date'] = cases.index
-    cases = cases.iloc[1:]
-    cases = cases.reset_index(drop=True)
-
-    recoveries = recoveries.transpose()
-    recoveries.columns = recoveries.iloc[0]
-    recoveries['Date'] = recoveries.index
-    recoveries = recoveries.iloc[1:]
-    recoveries = recoveries.reset_index(drop=True)
-
-    deaths = deaths.transpose()
-    deaths.columns = deaths.iloc[0]
-    deaths['Date'] = deaths.index
-    deaths = deaths.iloc[1:]
-    deaths = deaths.reset_index(drop=True)
-
-    return cases, deaths, recoveries
-
-
-@st.cache
-def load_pop_data():
-    pop_data = pd.read_csv('data/countries.csv', index_col='country')
-    return pop_data
-
-
-@st.cache(allow_output_mutation=True)
-def processing(countries, cases, deaths, recoveries):
-    """
-    Function to combine data files and calculate active cases
-
-    """
-    datalist = []
-    for country in countries:
-        d = deaths[['Date', country]]
-        c = cases[['Date', country]]
-        r = recoveries[['Date', country]]
-        df = c.merge(left_on='Date', right_on='Date', right=r)
-        df = df.merge(left_on='Date', right_on='Date', right=d)
-        df['Date'] = pd.to_datetime(df['Date'], infer_datetime_format=True)
-        df.set_index('Date', inplace=True)
-        df.columns = ['cases', 'recoveries', 'deaths']
-        df['active'] = df['cases'] - (df['deaths'] + df['recoveries'])
-        df = df[['active']]
-        df.columns = [f'{country}']
-        datalist.append(df)
-    if len(datalist) > 1:
-        merged = pd.concat(datalist, axis=1)
-        return merged
-    elif len(datalist) == 1:
-        return df
-    else:
-        df = []
-        return df
-
-
-@st.cache(allow_output_mutation=True)
-def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recoveries):
-    datetime = cases['Date']
-    data = pd.DataFrame(index=datetime)
-    for country in countries:
-        d = deaths[['Date', country]]
-        c = cases[['Date', country]]
-        r = recoveries[['Date', country]]
-        df = c.merge(left_on='Date', right_on='Date', right=r)
-        df = df.merge(left_on='Date', right_on='Date', right=d)
-        df['Date'] = pd.to_datetime(df['Date'], infer_datetime_format=True)
-        df.set_index('Date', inplace=True)
-        df.columns = ['cases', 'recoveries', 'deaths']
-        df['active'] = df['cases'] - (df['deaths'] + df['recoveries'])
-        data[f'{country}'] = df[['active']]
-
-    data = data.transpose().reset_index()
-    data = pd.melt(data, id_vars='index')
-    data.rename(columns={'index': 'country', 'Date': 'date', 'value': 'active'}, inplace=True)
-    data = data[data['country'].isin(countries_pop_data)]
-    data['active_capita'] = data.apply(lambda x: x.active / pop_data.at[f"{x.country}", "population"] * 100000, axis=1)
-    with pd.option_context('mode.use_inf_as_na', True):
-        data = data.dropna(subset=['active', 'active_capita'], how='all')
-
-    # # per week
-    # df['new_date'] = pd.to_datetime(df['date'])
-    # df['Year-Week'] = df['new_date'].dt.strftime('%Y-%U')
-
-    return data
-
-
-def bokeh_plot(data):
-    p = figure(title='Active cases',
-               x_axis_type='datetime',
-               x_axis_label='Time',
-               y_axis_label='Number of cases',
-               toolbar_location=None,
-               plot_height=400
-               )
-    x = data.index
-
-    colors = itertools.cycle(palette)
-
-    for column in data.columns:
-        df = list(data[column])
-        p.line(x, df, legend_label=column, line_width=2, color=next(colors))
-
-    for year in ['2020', '2021', '2022']:
-        vline = Span(location=datetime.strptime(f'1/1/{year}', '%d/%m/%Y'),
-                     dimension='height',
-                     line_color='black',
-                     line_width=0.25,
-                     )
-        text = Label(x=datetime.strptime(f'1/1/{year}', '%d/%m/%Y'), y=0,
-                     text=f"{year}",
-                     text_color='black',
-                     angle=1.5708,
-                     text_font_size='8pt',
-                     text_alpha=0.7,
-                     x_offset=15,
-                     y_offset=-12
-                     )
-
-        p.renderers.extend([vline])
-        p.add_layout(text)
-
-    hover = p.select(dict(type=HoverTool))
-    hover.tooltips = [("cases", "@y")]
-
-    p.legend.location = "top_left"
-    p.xaxis.formatter = DatetimeTickFormatter(months=['%B'])
-    p.xaxis.axis_label_text_align = 'right'  # <== THIS APPEARS TO DO NOTHING
-    p.toolbar.active_scroll = p.select_one(WheelZoomTool)
-    p.js_on_event(DoubleTap, CustomJS(args=dict(p=p), code='p.reset.emit()'))
-
-    st.bokeh_chart(p, use_container_width=True)
+from scripts.data import *
+from scripts.figures import *
 
 
 def main():
@@ -197,15 +36,42 @@ def main():
 
     This is an experimental app developed in Python with the fabulous [streamlit](https://streamlit.io/) package, 
     to help explore and understand data related to the Covid-19 pandemic (2019 - present). Please use the options in 
-    the sidebar (left side) to select an analysis/visualisation.
+    the sidebar (left side) to select an analysis or visualisation.
     """)
 
     # Load and wrangle data
     cases, deaths, recoveries = load_data()
     pop_data = load_pop_data()
     country_list = tuple(cases.columns[1:])
+    vac_doses, vac_partial, vac_fully = load_vaccine_data()
+    vac_doses_pop = vac_doses.copy(deep=True)
+    vac_partial_pop = vac_partial.copy(deep=True)
+    vac_fully_pop = vac_fully.copy(deep=True)
 
-    feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases', '💉 Vaccines'])
+    for country in list(vac_doses.columns):
+        try:
+            pop = pop_data.at[country, "population"]
+        except KeyError:
+            continue
+        vac_doses_pop[f"{country}"] = vac_doses_pop[f"{country}"].apply(lambda x: x / pop * 100000)
+
+    for country in list(vac_partial.columns):
+        try:
+            pop = pop_data.at[country, "population"]
+        except KeyError:
+            continue
+        vac_partial_pop[f"{country}"] = vac_partial_pop[f"{country}"].apply(lambda x: x / pop * 100000)
+
+    for country in list(vac_fully.columns):
+        try:
+            pop = pop_data.at[country, "population"]
+        except KeyError:
+            continue
+        vac_fully_pop[f"{country}"] = vac_fully_pop[f"{country}"].apply(lambda x: x / pop * 100000)
+
+    feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases',
+                                                             '💉 Vaccines'])
+
 
     if feature == '🤒 Active cases':
 
@@ -236,9 +102,9 @@ def main():
 
         enrich = st.checkbox("Per capita (100k)", value=True)
         if enrich:
-            bokeh_plot(merged_new)
+            bokeh_plot(merged_new, 'Number of cases', 'linear')
         else:
-            bokeh_plot(merged)
+            bokeh_plot(merged, 'Number of cases', 'linear')
 
     elif feature == '💉 Vaccines':
         st.write("""\
@@ -247,8 +113,44 @@ def main():
                 This chart shows doses of vaccines given, as reported by individual countries (_vertical axis, y_). 
                 A number of options can be chosen, including comparison with active cases.  
                 
-                https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/global_data/time_series_covid19_vaccine_global.csv
                 """)
+
+        topic = st.selectbox('Select data comparison', ['Vaccine doses (time-series)'])
+        country_list = list(vac_doses.columns)
+
+        if topic == 'Vaccine doses (time-series)':
+            countries = st.multiselect('Choose one or multiple countries', country_list,
+                                       ['Israel', 'United Arab Emirates', 'United Kingdom', 'Germany'])
+
+            if not countries:
+                st.warning("Please select at least one country.")
+
+            left, center, right = st.beta_columns(3)
+            with left:
+                enrich = st.checkbox("Per capita (100k)", value=True)
+            with center:
+                compar = st.checkbox("Compare to active", value=False)
+            with right:
+                log = st.checkbox("Log-scale", value=False)
+
+            scale = 'linear'
+            if log:
+                scale = 'log'
+
+            if enrich:
+                bokeh_plot_vaccines(vac_doses_pop[countries], per_capita=True)
+            else:
+                bokeh_plot_vaccines(vac_doses[countries], per_capita=False)
+
+    # elif feature == '✔️ Data exploration':
+    #     st.write("""\
+    #               ## Data exploration
+    #
+    #               This area offers a variety of graphs that compare various types of data, something that is very
+    #               difficulty to find elsewhere. In particular, the focus is on showing the connection between the
+    #               incidence-number (cases per 100k people) as used in Germany, number of PCR tests conducted,
+    #               implementation of movement and other restrictions and vaccine doses.
+    #               """)
     # -----------------------------------------------------------------------------------------------------------
 
     # Bottom line (credits)
@@ -264,6 +166,7 @@ def main():
                         ℹ️ Data sources:
                         * [Johns Hopkins University](https://github.com/CSSEGISandData/COVID-19)   
                         * [Worldometers](https://worldometers.info)
+                        * [Centers for Civic Impact](https://github.com/govex/COVID-19)
                         """)
     
     st.sidebar.markdown(f" {status}")
