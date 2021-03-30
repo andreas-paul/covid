@@ -8,7 +8,7 @@ from bokeh.models import WheelZoomTool, CustomJS, DatetimeTickFormatter, Span, L
 from bokeh.palettes import Dark2_5 as palette
 
 
-@st.cache(max_entries=None, suppress_st_warning=True)
+@st.cache(max_entries=None, suppress_st_warning=True, show_spinner=False)
 def load_data():
     url_cases = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data" \
                 "/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv "
@@ -50,7 +50,7 @@ def load_data():
     return cases, deaths, recoveries
 
 
-@st.cache(suppress_st_warning=True)
+@st.cache(suppress_st_warning=True, show_spinner=False)
 def load_vaccine_data():
 
     url = 'https://raw.githubusercontent.com/govex/COVID-19/master/data_tables/vaccine_data/' \
@@ -76,7 +76,7 @@ def load_pop_data():
     return pop_data
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache(allow_output_mutation=True, show_spinner=False)
 def processing(countries, cases, deaths, recoveries):
     """
     Function to combine data files and calculate active cases
@@ -106,7 +106,7 @@ def processing(countries, cases, deaths, recoveries):
         return df
 
 
-@st.cache(allow_output_mutation=True)
+@st.cache(allow_output_mutation=True, show_spinner=False)
 def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recoveries):
     datetime = cases['Date']
     data = pd.DataFrame(index=datetime)
