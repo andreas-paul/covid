@@ -70,8 +70,8 @@ def main():
         vac_fully_pop[f"{country}"] = vac_fully_pop[f"{country}"].apply(lambda x: x / pop * 100000)
 
     feature = st.sidebar.radio("Choose feature to display", ['🤒 Active cases',
-                                                             '💉 Vaccines',
-                                                             '✔️ Data exploration'])
+                                                             '💉 Vaccines'])
+
 
     if feature == '🤒 Active cases':
 
@@ -142,15 +142,15 @@ def main():
             else:
                 bokeh_plot_vaccines(vac_doses[countries], per_capita=False)
 
-    elif feature == '✔️ Data exploration':
-        st.write("""\
-                  ## Data exploration
-
-                  This area offers a variety of graphs that compare various types of data, something that is very
-                  difficulty to find elsewhere. In particular, the focus is on showing the connection between the
-                  incidence-number (cases per 100k people) as used in Germany, number of PCR tests conducted, 
-                  implementation of movement and other restrictions and vaccine doses.
-                  """)
+    # elif feature == '✔️ Data exploration':
+    #     st.write("""\
+    #               ## Data exploration
+    #
+    #               This area offers a variety of graphs that compare various types of data, something that is very
+    #               difficulty to find elsewhere. In particular, the focus is on showing the connection between the
+    #               incidence-number (cases per 100k people) as used in Germany, number of PCR tests conducted,
+    #               implementation of movement and other restrictions and vaccine doses.
+    #               """)
     # -----------------------------------------------------------------------------------------------------------
 
     # Bottom line (credits)
