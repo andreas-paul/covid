@@ -117,6 +117,7 @@ def main():
             in an ever increasing number of active cases and should thus be interpreted with care (e.g., _The Netherlands_).
             """)
 
+            country_list = tuple(cases.columns[1:])
             countries = st.multiselect('Choose one or multiple countries', country_list,
                                        ['Germany', 'Japan', 'United Arab Emirates'])
             if not countries:
@@ -125,8 +126,12 @@ def main():
             merged = processing(countries, cases, deaths, recoveries)
 
             merged_new = merged.copy()
-            for item in countries:
-                merged_new[f'{item}'] = merged_new[f'{item}'] / pop_data.at[f"{item}", "population"] * 100000
+            for country in countries:
+                if country == 'US':
+                    pop_country = 'United States'
+                else:
+                    pop_country = country
+                merged_new[f'{country}'] = merged_new[f'{country}'] / pop_data.at[f"{pop_country}", "population"] * 100000
 
             enrich = st.checkbox("Per capita (100k)", value=True)
             if enrich:
@@ -143,6 +148,7 @@ def main():
 
             """)
 
+            country_list = tuple(cases.columns[1:])
             countries = st.multiselect('Choose one or multiple countries', country_list,
                                        ['Germany', 'United Arab Emirates'])
             if not countries:
@@ -162,8 +168,12 @@ def main():
             # bokeh_plot(merged, 'Number of cases', 'linear')
 
             merged_new = merged.copy()
-            for item in countries:
-                merged_new[f'{item}'] = merged_new[f'{item}'] / pop_data.at[f"{item}", "population"] * 100000
+            for country in countries:
+                if country == 'US':
+                    pop_country = 'United States'
+                else:
+                    pop_country = country
+                merged_new[f'{country}'] = merged_new[f'{country}'] / pop_data.at[f"{pop_country}", "population"] * 100000
 
             enrich = st.checkbox("Per capita (100k)", value=True)
             if enrich:
