@@ -77,8 +77,9 @@ def bokeh_plot(data, type, axis_type):
     colors = itertools.cycle(palette)
 
     for column in data.columns:
-        df = list(data[column])
-        p.line(x, df, legend_label=column, line_width=2, color=next(colors))
+        if column != 'Date':
+            df = list(data[column])
+            p.line(x, df, legend_label=column, line_width=2, color=next(colors))
 
     for year in ['2020', '2021', '2022']:
         vline = Span(location=datetime.strptime(f'1/1/{year}', '%d/%m/%Y'),

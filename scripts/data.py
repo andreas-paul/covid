@@ -130,5 +130,27 @@ def wrangle_data(countries, pop_data, countries_pop_data, cases, deaths, recover
     return data
 
 
+@st.cache(allow_output_mutation=True, show_spinner=False)
+def create_daily(data):
+    df = pd.DataFrame()
+    for country in data.columns:
+        if country != 'Date':
+            df[f"{country}"] = data[f"{country}"].diff()
+    df['Date'] = data['Date']
+    return df
+
+
+@st.cache(allow_output_mutation=True, show_spinner=False, suppress_st_warning=True)
+def process_daily(countries, data):
+    """
+    Function to combine data files
+
+    """
+    countries = countries + ['Date']
+    data = data[countries]
+    data['Date'] = pd.to_datetime(data['Date'], infer_datetime_format=True)
+    data.index = data['Date']
+    return data
+
 
 
