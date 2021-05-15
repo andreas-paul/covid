@@ -52,9 +52,9 @@ def load_vaccine_data():
     df = df.drop(['UID', 'Report_Date_String'], axis=1)
     df['Date'] = pd.to_datetime(df['Date'], infer_datetime_format=True)
 
-    df_doses = df.reset_index().pivot('Country_Region', 'Date', 'Doses_admin', )
-    df_parti = df.reset_index().pivot('Country_Region', 'Date', 'People_partially_vaccinated')
-    df_fully = df.reset_index().pivot('Country_Region', 'Date', 'People_fully_vaccinated')
+    df_doses = df.reset_index().pivot_table(index='Country_Region', columns='Date', values='Doses_admin')
+    df_parti = df.reset_index().pivot_table(index='Country_Region', columns='Date', values='People_partially_vaccinated')
+    df_fully = df.reset_index().pivot_table(index='Country_Region', columns='Date', values='People_fully_vaccinated')
 
     df_doses = df_doses.transpose()
     df_parti = df_parti.transpose()
